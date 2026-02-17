@@ -42,7 +42,7 @@ The app runs on [http://localhost:3000](http://localhost:3000).
 | Framer Motion | Animations |
 | Lucide React | Icons |
 
-## Project Structure.
+## Project Structure
 
 ```
 src/
