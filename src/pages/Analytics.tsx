@@ -3,43 +3,86 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area,
     BarChart, Bar, PieChart, Pie, Cell
 } from 'recharts';
-import { TrendingUp, ArrowUp, ArrowDown, Package, Users, IndianRupee } from 'lucide-react';
-import { Product, Customer, Vendor } from '../types';
+import { TrendingUp, ArrowUp, ArrowDown, Package, Users, IndianRupee, ShieldCheck } from 'lucide-react';
+import { Product, Customer, Vendor, Transaction } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface AnalyticsProps {
     products: Product[];
     customers: Customer[];
     vendors: Vendor[];
+    transactions: Transaction[];
 }
 
-const monthlyRevenue = [
-    { month: 'Jan', revenue: 42000, expenses: 28000 },
-    { month: 'Feb', revenue: 38000, expenses: 25000 },
-    { month: 'Mar', revenue: 55000, expenses: 32000 },
-    { month: 'Apr', revenue: 48000, expenses: 30000 },
-    { month: 'May', revenue: 62000, expenses: 35000 },
-    { month: 'Jun', revenue: 58000, expenses: 33000 },
-];
+const CATEGORY_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#14B8A6'];
 
-const categoryData = [
-    { name: 'Dairy', value: 35, color: '#3B82F6' },
-    { name: 'Groceries', value: 25, color: '#10B981' },
-    { name: 'Personal Care', value: 20, color: '#8B5CF6' },
-    { name: 'Beverages', value: 12, color: '#F59E0B' },
-    { name: 'Others', value: 8, color: '#EF4444' },
-];
+const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors, transactions }) => {
+    const [gstConfig] = useLocalStorage('nx_gst_config', {
+        defaultRate: '18',
+        enableCGST: true,
+        enableSGST: true,
+        enableIGST: false,
+    });
 
-const topProducts = [
-    { name: 'Fortune Oil 1L', sold: 245, revenue: 44100 },
-    { name: 'Amul Milk 1L', sold: 312, revenue: 19968 },
-    { name: 'Basmati Rice 5kg', sold: 45, revenue: 28125 },
-    { name: 'Colgate 200g', sold: 89, revenue: 11125 },
-];
+    const activeRate = parseFloat(gstConfig.defaultRate) || 0;
 
-const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors }) => {
-    const totalRevenue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
+    // STRICT SYNC WITH DASHBOARD: Filter transactions by existing customers only
+    const activeCustomerIds = new Set(customers.map(c => c.id));
+    const validTransactions = transactions.filter(t => activeCustomerIds.has(t.customerId));
+
+    // Revenue from valid actual sales
+    const salesRevenue = validTransactions.reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+    // Historical customer payments (if no transactions exist)
+    const historicalRevenue = customers.reduce((sum, c) => sum + (Number(c.totalPaid) || 0), 0);
+
+    // Total Revenue logic matched with Dashboard "Net Sales"
+    // If no customers exist, the total is always zero.
+    const totalRevenue = customers.length === 0 ? 0 : (salesRevenue > 0 ? salesRevenue : historicalRevenue);
+
+    const totalGstCollected = validTransactions.reduce((sum, t) => sum + (Number(t.gstAmount) || 0), 0);
+    const totalProducts = products.length;
     const totalCustomers = customers.length;
     const totalVendors = vendors.length;
+
+    // Potential Revenue (Stock Value + Projected GST)
+    const potentialRevenue = products.reduce((sum, p) => {
+        const rate = p.gstRate !== undefined ? p.gstRate : activeRate;
+        const priceWithTax = p.price * (1 + rate / 100);
+        return sum + (priceWithTax * p.stock);
+    }, 0);
+
+    // Revenue vs Expenses by product category (real data + dynamic taxes)
+    const catRevMap: Record<string, { revenue: number; expenses: number }> = {};
+    products.forEach(p => {
+        const cat = p.category || 'Other';
+        if (!catRevMap[cat]) catRevMap[cat] = { revenue: 0, expenses: 0 };
+        const rate = p.gstRate !== undefined ? p.gstRate : activeRate;
+        const priceWithTax = p.price * (1 + rate / 100);
+        catRevMap[cat].revenue += priceWithTax * p.stock;
+        catRevMap[cat].expenses += p.purchasePrice * p.stock;
+    });
+    const monthlyRevenue = Object.entries(catRevMap).map(([month, data]) => ({
+        month, revenue: data.revenue, expenses: data.expenses
+    }));
+    if (monthlyRevenue.length === 0) monthlyRevenue.push({ month: 'No Data', revenue: 0, expenses: 0 });
+
+    // Category Distribution (real percentage by inventory value)
+    const categoryData = Object.entries(catRevMap).map(([name, data], idx) => ({
+        name,
+        value: totalRevenue > 0 ? Math.round((data.revenue / totalRevenue) * 100) : 0,
+        color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+    }));
+    if (categoryData.length === 0) categoryData.push({ name: 'No Data', value: 100, color: '#94A3B8' });
+
+    // Top Products (real data sorted by revenue)
+    const topProducts = [...products]
+        .map(p => {
+            const rate = p.gstRate !== undefined ? p.gstRate : activeRate;
+            const priceWithTax = p.price * (1 + rate / 100);
+            return { name: p.name, sold: p.stock, revenue: priceWithTax * p.stock };
+        })
+        .sort((a, b) => b.revenue - a.revenue);
+    const maxSold = topProducts.length > 0 ? Math.max(...topProducts.map(p => p.sold)) : 1;
 
     return (
         <div className="space-y-6">
@@ -47,13 +90,13 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors }) =
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                 {[
                     { title: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: '+12.5%', positive: true, icon: IndianRupee, color: 'bg-green-500' },
-                    { title: 'Products', value: products.length.toString(), change: '+3', positive: true, icon: Package, color: 'bg-blue-600' },
-                    { title: 'Customers', value: totalCustomers.toString(), change: '+8', positive: true, icon: Users, color: 'bg-purple-600' },
-                    { title: 'Vendors', value: totalVendors.toString(), change: '+2', positive: true, icon: TrendingUp, color: 'bg-orange-500' },
+                    { title: 'Potential Value', value: `₹${potentialRevenue.toLocaleString()}`, change: '+3.1%', positive: true, icon: TrendingUp, color: 'bg-orange-500' },
+                    { title: 'Tax Collected', value: `₹${totalGstCollected.toLocaleString()}`, change: '+10.2%', positive: true, icon: ShieldCheck, color: 'bg-indigo-500' },
+                    { title: 'Customers', value: totalCustomers.toString(), change: '+8%', positive: true, icon: Users, color: 'bg-purple-600' },
                 ].map((card, idx) => (
-                    <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                    <div key={idx} className="bg-white p-5 rounded border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
-                            <div className={`w-10 h-10 rounded-xl ${card.color} flex items-center justify-center`}>
+                            <div className={`w-10 h-10 rounded-sm ${card.color} flex items-center justify-center`}>
                                 <card.icon className="w-5 h-5 text-white" />
                             </div>
                             <span className={`text-xs font-bold ${card.positive ? 'text-green-600' : 'text-red-500'} flex items-center space-x-1`}>
@@ -70,7 +113,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors }) =
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Revenue vs Expenses */}
-                <div className="bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-4 lg:p-6 rounded border border-slate-100 shadow-sm">
                     <h3 className="text-base lg:text-lg font-black text-slate-900 mb-6">Revenue vs Expenses</h3>
                     <div className="h-56 lg:h-72">
                         <ResponsiveContainer width="100%" height="100%">
@@ -87,7 +130,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors }) =
                 </div>
 
                 {/* Category Distribution */}
-                <div className="bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-4 lg:p-6 rounded border border-slate-100 shadow-sm">
                     <h3 className="text-base lg:text-lg font-black text-slate-900 mb-6">Category Distribution</h3>
                     <div className="flex flex-col sm:flex-row items-center justify-between">
                         <div className="w-full sm:w-1/2 h-52">
@@ -116,7 +159,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors }) =
             </div>
 
             {/* Top Products Table */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded border border-slate-100 shadow-sm overflow-hidden">
                 <div className="p-4 lg:p-6 border-b border-slate-100">
                     <h3 className="text-base lg:text-lg font-black text-slate-900">Top Selling Products</h3>
                 </div>
@@ -138,7 +181,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors }) =
                                     <td className="px-4 lg:px-6 py-4 font-black text-sm text-green-600">₹{p.revenue.toLocaleString()}</td>
                                     <td className="px-4 lg:px-6 py-4 hidden sm:table-cell">
                                         <div className="w-full bg-slate-100 rounded-full h-2">
-                                            <div className="bg-blue-600 rounded-full h-2" style={{ width: `${(p.sold / 312) * 100}%` }}></div>
+                                            <div className="bg-blue-600 rounded-full h-2" style={{ width: `${(p.sold / maxSold) * 100}%` }}></div>
                                         </div>
                                     </td>
                                 </tr>
@@ -152,3 +195,5 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors }) =
 };
 
 export default Analytics;
+
+

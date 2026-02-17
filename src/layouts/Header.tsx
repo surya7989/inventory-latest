@@ -1,16 +1,22 @@
 import React from 'react';
 import { Search, Bell, LogOut, Menu } from 'lucide-react';
 import { Page } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface HeaderProps {
     activePage: Page;
-    onLogout: () => void;
+    onPageChange: (page: Page) => void;
     onToggleSidebar: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activePage, onLogout, onToggleSidebar }) => {
+const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, onToggleSidebar }) => {
+    const [profile] = useLocalStorage('nx_admin_profile', {
+        name: 'John Anderson',
+        avatar: ''
+    });
+
     const titles: Record<Page, { title: string; subtitle: string }> = {
-        dashboard: { title: 'Dashboard', subtitle: "Welcome back, John. Here's what's happening today." },
+        dashboard: { title: 'Dashboard', subtitle: `Welcome back, ${profile.name.split(' ')[0]}. Here's what's happening today.` },
         billing: { title: 'Billing Dashboard', subtitle: 'Dashboard > Billing' },
         inventory: { title: 'Inventory Dashboard', subtitle: 'Track stock levels, movement, and profitability' },
         customers: { title: 'Customer Management', subtitle: 'Manage and track all your customers in one place.' },
@@ -56,11 +62,16 @@ const Header: React.FC<HeaderProps> = ({ activePage, onLogout, onToggleSidebar }
                 </button>
 
                 <button
-                    onClick={onLogout}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-red-500 transition-colors"
+                    onClick={() => onPageChange('settings')}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors group"
+                    title="Go to Settings"
                 >
-                    <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-sm">
-                        J
+                    <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm overflow-hidden border-2 border-transparent group-hover:border-blue-100 transition-all shadow-sm">
+                        {profile.avatar ? (
+                            <img src={profile.avatar} alt="Admin" className="w-full h-full object-cover" />
+                        ) : (
+                            profile.name.charAt(0)
+                        )}
                     </div>
                 </button>
             </div>

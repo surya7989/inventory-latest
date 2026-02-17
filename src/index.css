@@ -13,13 +13,16 @@ body {
 .vyapar-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
 .vyapar-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .vyapar-scrollbar::-webkit-scrollbar-thumb {
   background: #e5e7eb;
   border-radius: 10px;
 }
+
 .vyapar-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #d1d5db;
 }
@@ -63,6 +66,7 @@ body {
   inherits: false;
   initial-value: -75deg;
 }
+
 @property --angle-2 {
   syntax: "<angle>";
   inherits: false;
@@ -78,6 +82,7 @@ body {
   transform-style: preserve-3d;
   transition: transform var(--anim-time) var(--anim-ease);
 }
+
 .glass-button-wrap:has(.glass-button:active) {
   transform: rotateX(25deg);
 }
@@ -94,6 +99,7 @@ body {
   pointer-events: none;
   z-index: 0;
 }
+
 .glass-button-shadow::after {
   content: "";
   position: absolute;
@@ -129,9 +135,11 @@ body {
   color: oklch(from var(--foreground) l c h / 90%);
   transition: all var(--anim-time) var(--anim-ease);
 }
+
 .glass-button:hover {
   transform: scale(0.975);
 }
+
 .glass-button::after {
   content: "";
   position: absolute;
@@ -162,6 +170,7 @@ body {
   background: linear-gradient(-75deg, oklch(from var(--background) l c h / 5%), oklch(from var(--background) l c h / 20%), oklch(from var(--background) l c h / 5%));
   border: 1px solid oklch(from var(--foreground) l c h / 10%);
 }
+
 .glass-input:focus-within {
   border-color: var(--color-primary);
 }
@@ -171,6 +180,7 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none !important;
 }
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -184,12 +194,29 @@ input:-webkit-autofill:active {
 
 /* ─── Animation Keyframes ─── */
 @keyframes float1 {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(-10px, 10px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(-10px, 10px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
 }
+
 @keyframes float2 {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(10px, -10px); }
-  100% { transform: translate(0, 0); }
+  0% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(10px, -10px);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
 }

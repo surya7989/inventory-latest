@@ -41,6 +41,7 @@ export interface Vendor {
     pendingAmount: number;
     lastTransaction?: string;
     totalInvoices?: number;
+    image?: string;
 }
 
 export interface CartItem extends Product {
@@ -50,8 +51,20 @@ export interface CartItem extends Product {
 export type PaymentMethod = 'cash' | 'upi' | 'card' | 'split' | 'bank_transfer';
 
 export interface Transaction {
-    id: number;
+    id: string;
+    customerId: string;
     items: CartItem[];
     total: number;
-    date: Date;
+    gstAmount?: number;
+    date: string;
+    method: PaymentMethod;
+    status: 'Paid' | 'Unpaid' | 'Partial';
+}
+
+export interface PurchaseOrder {
+    id: string;
+    vendorId: string;
+    amount: number;
+    date: string;
+    status: 'Paid' | 'Unpaid' | 'Partial';
 }

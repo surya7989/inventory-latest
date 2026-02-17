@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import { Page } from '../types';
 
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
 interface SidebarProps {
     activePage: Page;
     onPageChange: (page: Page) => void;
@@ -13,6 +15,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, isOpen, onClose }) => {
+    const [profile] = useLocalStorage('nx_admin_profile', {
+        name: 'John Anderson',
+        role: 'Administrator',
+        avatar: 'https://picsum.photos/id/64/40/40'
+    });
+
     const menuItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { id: 'billing', icon: Receipt, label: 'Billing / POS' },
@@ -46,7 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
                 <div className="p-6 flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Nexarats</h2>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">NexaratsINV</h2>
                     <button onClick={onClose} className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
@@ -58,8 +66,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
                             key={item.id}
                             onClick={() => handlePageChange(item.id as Page)}
                             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activePage === item.id
-                                    ? 'bg-[#EF4444] text-white shadow-lg'
-                                    : 'text-slate-600 hover:bg-slate-50 font-medium'
+                                ? 'bg-[#EF4444] text-white shadow-lg'
+                                : 'text-slate-600 hover:bg-slate-50 font-medium'
                                 }`}
                         >
                             <item.icon className="w-5 h-5" />
@@ -84,11 +92,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="flex items-center space-x-3 overflow-hidden">
                             <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center font-black text-orange-600 border border-orange-200 shrink-0 overflow-hidden">
-                                <img src="https://picsum.photos/id/64/40/40" alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex flex-col min-w-0">
-                                <span className="text-xs font-black text-slate-900 truncate">John Anderson</span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administrator</span>
+                                <span className="text-xs font-black text-slate-900 truncate">{profile.name}</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{profile.role}</span>
                             </div>
                         </div>
                         <button

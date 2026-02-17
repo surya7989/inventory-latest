@@ -43,13 +43,13 @@ const Settings: React.FC = () => {
     return (
         <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-120px)]">
             {/* Tabs Sidebar */}
-            <div className="w-full lg:w-72 bg-white rounded-2xl border border-slate-100 shadow-sm p-3 lg:p-4 shrink-0">
+            <div className="w-full lg:w-72 bg-white rounded border border-slate-100 shadow-sm p-3 lg:p-4 shrink-0">
                 <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 vyapar-scrollbar">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id
+                            className={`flex items-center space-x-3 px-4 py-3 rounded-sm transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id
                                     ? 'bg-blue-600 text-white shadow-lg'
                                     : 'text-slate-500 hover:bg-slate-50'
                                 }`}
@@ -61,11 +61,11 @@ const Settings: React.FC = () => {
                 </div>
 
                 <div className="hidden lg:block mt-6 space-y-2 border-t border-slate-100 pt-4">
-                    <button className="w-full flex items-center space-x-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                    <button className="w-full flex items-center space-x-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-sm transition-all">
                         <LogOut className="w-4 h-4" />
                         <span className="text-sm font-bold">Sign Out</span>
                     </button>
-                    <button className="w-full flex items-center space-x-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                    <button className="w-full flex items-center space-x-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-sm transition-all">
                         <Trash2 className="w-4 h-4" />
                         <span className="text-sm font-bold">Delete Account</span>
                     </button>
@@ -73,7 +73,7 @@ const Settings: React.FC = () => {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-8 overflow-y-auto">
+            <div className="flex-1 bg-white rounded border border-slate-100 shadow-sm p-4 lg:p-8 overflow-y-auto">
                 {renderContent()}
             </div>
         </div>
@@ -81,3 +81,5 @@ const Settings: React.FC = () => {
 };
 
 export default Settings;
+
+

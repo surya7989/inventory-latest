@@ -21,10 +21,10 @@ const Reports: React.FC = () => {
                     <button
                         key={r.id}
                         onClick={() => setSelectedReport(r.id)}
-                        className={`p-4 lg:p-5 rounded-2xl border-2 text-left transition-all ${selectedReport === r.id ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-200'
+                        className={`p-4 lg:p-5 rounded border-2 text-left transition-all ${selectedReport === r.id ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-200'
                             }`}
                     >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${selectedReport === r.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
+                        <div className={`w-10 h-10 rounded-sm flex items-center justify-center mb-3 ${selectedReport === r.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
                             }`}>
                             <r.icon className="w-5 h-5" />
                         </div>
@@ -35,9 +35,9 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Filters & Actions */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded border border-slate-100 shadow-sm">
                 <div className="flex items-center space-x-3 flex-wrap gap-2">
-                    <div className="flex items-center space-x-2 bg-slate-50 px-4 py-2.5 rounded-xl">
+                    <div className="flex items-center space-x-2 bg-slate-50 px-4 py-2.5 rounded-sm">
                         <Calendar className="w-4 h-4 text-slate-400" />
                         <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="bg-transparent text-sm font-bold outline-none">
                             <option value="today">Today</option>
@@ -48,20 +48,20 @@ const Reports: React.FC = () => {
                             <option value="custom">Custom Range</option>
                         </select>
                     </div>
-                    <button className="p-2.5 bg-slate-50 rounded-xl text-slate-400"><Filter className="w-4 h-4" /></button>
+                    <button className="p-2.5 bg-slate-50 rounded-sm text-slate-400"><Filter className="w-4 h-4" /></button>
                 </div>
                 <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
-                    <button className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm">
+                    <button className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2.5 rounded-sm font-bold text-sm">
                         <Download className="w-4 h-4" /><span className="hidden sm:inline">Export PDF</span>
                     </button>
-                    <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm">
+                    <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-sm font-bold text-sm">
                         <Download className="w-4 h-4" /><span className="hidden sm:inline">Export Excel</span>
                     </button>
                 </div>
             </div>
 
             {/* Report Preview */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded border border-slate-100 shadow-sm overflow-hidden">
                 <div className="p-4 lg:p-6 border-b border-slate-100">
                     <h3 className="text-lg font-black text-slate-900">{reports.find(r => r.id === selectedReport)?.title} Preview</h3>
                     <p className="text-xs text-slate-400 font-bold mt-1">Data for {dateRange.replace('_', ' ')}</p>
@@ -75,7 +75,7 @@ const Reports: React.FC = () => {
                                 { label: 'Total Transactions', value: '1,240', color: 'text-blue-600' },
                                 { label: 'Avg. Order Value', value: '₹681', color: 'text-purple-600' },
                             ].map((stat, idx) => (
-                                <div key={idx} className="bg-slate-50 p-4 lg:p-5 rounded-2xl">
+                                <div key={idx} className="bg-slate-50 p-4 lg:p-5 rounded">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
                                     <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
                                 </div>
@@ -120,7 +120,7 @@ const Reports: React.FC = () => {
                                 { label: 'Low Stock Items', value: '12', color: 'text-orange-600' },
                                 { label: 'Out of Stock', value: '3', color: 'text-red-600' },
                             ].map((stat, idx) => (
-                                <div key={idx} className="bg-slate-50 p-4 lg:p-5 rounded-2xl">
+                                <div key={idx} className="bg-slate-50 p-4 lg:p-5 rounded">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
                                     <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
                                 </div>
@@ -132,7 +132,7 @@ const Reports: React.FC = () => {
 
                 {selectedReport !== 'sales' && selectedReport !== 'inventory' && (
                     <div className="p-8 lg:p-12 text-center">
-                        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-slate-100 rounded flex items-center justify-center mx-auto mb-4">
                             <FileText className="w-8 h-8 text-slate-300" />
                         </div>
                         <p className="text-sm font-bold text-slate-400">Click Export to generate the full {reports.find(r => r.id === selectedReport)?.title}</p>
@@ -144,3 +144,5 @@ const Reports: React.FC = () => {
 };
 
 export default Reports;
+
+

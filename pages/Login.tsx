@@ -19,8 +19,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   if (view === 'signup') {
     return (
-      <AuthComponent 
-        brandName="Nexarats Pro" 
+      <AuthComponent
+        brandName="NexaratsINV"
         onGoToLogin={() => setView('login')}
         onSuccess={onLogin}
         logo={
@@ -42,8 +42,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <LayoutGrid className="text-white w-6 h-6" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black text-[#1E293B] leading-none tracking-tight">Nexarats</span>
-              <span className="text-sm font-bold text-[#64748B] -mt-0.5">Pro</span>
+              <span className="text-xl font-black text-[#1E293B] leading-none tracking-tight">NexaratsINV</span>
+
             </div>
           </div>
 
@@ -61,9 +61,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="relative w-full max-w-sm xl:max-w-md mx-auto">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-white rounded-full opacity-40 blur-2xl"></div>
               <div className="relative z-10 bg-[#E2EEF1] rounded-[32px] overflow-hidden shadow-xl border border-white/50 p-1.5">
-                <img 
-                  src="https://img.freepik.com/free-vector/warehouse-staff-checking-inventory-with-tablet_74855-16358.jpg" 
-                  alt="Warehouse Management" 
+                <img
+                  src="https://img.freepik.com/free-vector/warehouse-staff-checking-inventory-with-tablet_74855-16358.jpg"
+                  alt="Warehouse Management"
                   className="w-full h-auto object-cover rounded-[28px] mix-blend-multiply"
                 />
               </div>

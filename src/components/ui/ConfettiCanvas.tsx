@@ -32,3 +32,4 @@ const ConfettiCanvas = forwardRef<ConfettiRef, React.ComponentPropsWithRef<"canv
 ConfettiCanvas.displayName = "ConfettiCanvas";
 
 export default ConfettiCanvas;
+

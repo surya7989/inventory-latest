@@ -49,7 +49,7 @@ interface AuthComponentProps {
     onGoToLogin?: () => void;
 }
 
-export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "Nexarats Pro", onSuccess, onGoToLogin }: AuthComponentProps) => {
+export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NexaratsINV", onSuccess, onGoToLogin }: AuthComponentProps) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -140,7 +140,7 @@ export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "Nexarats Pr
         <AnimatePresence>
             {modalStatus !== 'closed' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white border-4 border-gray-200 rounded-2xl p-8 w-full max-w-sm flex flex-col items-center gap-4 mx-2">
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white border-4 border-gray-200 rounded p-8 w-full max-w-sm flex flex-col items-center gap-4 mx-2">
                         {(modalStatus === 'error' || modalStatus === 'success') && <button onClick={closeModal} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-900 transition-colors"><X className="w-5 h-5" /></button>}
                         {modalStatus === 'error' && <>
                             <AlertCircle className="w-12 h-12 text-red-500" />
@@ -258,3 +258,4 @@ export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "Nexarats Pr
 };
 
 export default AuthComponent;
+

@@ -16,34 +16,34 @@ const AccountInfo: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-500 rounded-sm flex items-center justify-center">
                     <Info className="w-5 h-5 text-white" />
                 </div>
                 <h2 className="text-xl lg:text-2xl font-black text-slate-900">Account Information</h2>
             </div>
 
             {/* Plan Info */}
-            <div className="p-6 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl text-white">
+            <div className="p-6 bg-gradient-to-br from-blue-600 to-purple-600 rounded text-white">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <p className="text-blue-200 text-[10px] font-black uppercase tracking-widest">Current Plan</p>
                         <h3 className="text-2xl font-black mt-1">{accountData.plan}</h3>
                         <p className="text-blue-200 text-xs mt-1">Account ID: {accountData.accountId}</p>
                     </div>
-                    <button className="px-6 py-3 bg-white text-blue-600 rounded-xl font-black text-sm">Upgrade Plan</button>
+                    <button className="px-6 py-3 bg-white text-blue-600 rounded-sm font-black text-sm">Upgrade Plan</button>
                 </div>
             </div>
 
             {/* Key Dates */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-50 rounded-2xl flex items-center space-x-4">
+                <div className="p-4 bg-slate-50 rounded flex items-center space-x-4">
                     <Calendar className="w-5 h-5 text-slate-400" />
                     <div>
                         <p className="text-xs font-bold text-slate-400 uppercase">Account Created</p>
                         <p className="font-black text-slate-900">{accountData.createdOn}</p>
                     </div>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-2xl flex items-center space-x-4">
+                <div className="p-4 bg-slate-50 rounded flex items-center space-x-4">
                     <Calendar className="w-5 h-5 text-slate-400" />
                     <div>
                         <p className="text-xs font-bold text-slate-400 uppercase">Next Renewal</p>
@@ -61,7 +61,7 @@ const AccountInfo: React.FC = () => {
                     { icon: Users, label: 'Team Members', used: accountData.users.count.toString(), total: accountData.users.limit.toString(), pct: (accountData.users.count / accountData.users.limit) * 100, color: 'bg-purple-500' },
                     { icon: Globe, label: 'Invoices', used: accountData.invoices.count.toString(), total: accountData.invoices.limit.toString(), pct: 12, color: 'bg-orange-500' },
                 ].map((item, idx) => (
-                    <div key={idx} className="p-4 bg-slate-50 rounded-xl">
+                    <div key={idx} className="p-4 bg-slate-50 rounded-sm">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3">
                                 <item.icon className="w-4 h-4 text-slate-400" />
@@ -80,3 +80,5 @@ const AccountInfo: React.FC = () => {
 };
 
 export default AccountInfo;
+
+

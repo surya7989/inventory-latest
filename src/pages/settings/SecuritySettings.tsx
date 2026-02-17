@@ -1,15 +1,31 @@
 import React, { useState } from 'react';
-import { Shield, Key, Smartphone, Monitor, Save, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Shield, Key, Smartphone, Monitor, Save, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
+import confetti from 'canvas-confetti';
 
 const SecuritySettings: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [passwords, setPasswords] = useState({ current: '', newPassword: '', confirm: '' });
-    const [settings, setSettings] = useState({
+    const [settings, setSettings] = useLocalStorage('nx_security_settings', {
         twoFactor: false,
         loginAlerts: true,
         sessionTimeout: '30',
         ipRestriction: false,
     });
+    const [saved, setSaved] = useState(false);
+
+    const handleUpdatePassword = () => {
+        if (!passwords.newPassword) return;
+        setSaved(true);
+        confetti({
+            particleCount: 50,
+            spread: 50,
+            origin: { y: 0.6 },
+            colors: ['#EF4444', '#2563EB']
+        });
+        setPasswords({ current: '', newPassword: '', confirm: '' });
+        setTimeout(() => setSaved(false), 3000);
+    };
 
     const sessions = [
         { device: 'Chrome on Windows', location: 'Mumbai, India', time: 'Active now', current: true },
@@ -26,34 +42,40 @@ const SecuritySettings: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-red-500 rounded-sm flex items-center justify-center">
                     <Shield className="w-5 h-5 text-white" />
                 </div>
                 <h2 className="text-xl lg:text-2xl font-black text-slate-900">Security & Privacy</h2>
             </div>
 
             {/* Change Password */}
-            <div className="p-4 lg:p-6 bg-slate-50 rounded-2xl space-y-4">
+            <div className="p-4 lg:p-6 bg-slate-50 rounded space-y-4">
                 <h3 className="text-sm font-black text-slate-600 uppercase tracking-widest flex items-center space-x-2"><Key className="w-4 h-4" /><span>Change Password</span></h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="relative">
                         <label className="text-xs font-bold text-slate-400">Current Password</label>
-                        <input type={showPassword ? "text" : "password"} value={passwords.current} onChange={(e) => setPasswords({ ...passwords, current: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl outline-none" />
+                        <input type={showPassword ? "text" : "password"} value={passwords.current} onChange={(e) => setPasswords({ ...passwords, current: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none" />
                     </div>
                     <div>
                         <label className="text-xs font-bold text-slate-400">New Password</label>
-                        <input type={showPassword ? "text" : "password"} value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl outline-none" />
+                        <input type={showPassword ? "text" : "password"} value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none" />
                     </div>
                     <div>
                         <label className="text-xs font-bold text-slate-400">Confirm Password</label>
-                        <input type={showPassword ? "text" : "password"} value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl outline-none" />
+                        <input type={showPassword ? "text" : "password"} value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none" />
                     </div>
                 </div>
                 <div className="flex items-center justify-between">
                     <button onClick={() => setShowPassword(!showPassword)} className="flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-600">
                         {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}<span>{showPassword ? 'Hide' : 'Show'} passwords</span>
                     </button>
-                    <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm"><Save className="w-4 h-4" /><span>Update</span></button>
+                    <button
+                        onClick={handleUpdatePassword}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-sm font-bold text-sm transition-all ${saved ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+                    >
+                        {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-4 h-4" />}
+                        <span>{saved ? 'Updated!' : 'Update'}</span>
+                    </button>
                 </div>
             </div>
 
@@ -67,17 +89,17 @@ const SecuritySettings: React.FC = () => {
                     { key: 'loginAlerts' as const, icon: AlertCircle, label: 'Login Alerts', desc: 'Get notified when someone logs into your account' },
                     { key: 'ipRestriction' as const, icon: Shield, label: 'IP Restriction', desc: 'Restrict access to specific IP addresses' },
                 ].map(item => (
-                    <div key={item.key} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl transition-all">
+                    <div key={item.key} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-sm transition-all">
                         <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center"><item.icon className="w-5 h-5 text-slate-500" /></div>
+                            <div className="w-10 h-10 bg-slate-100 rounded-sm flex items-center justify-center"><item.icon className="w-5 h-5 text-slate-500" /></div>
                             <div><p className="font-bold text-sm text-slate-900">{item.label}</p><p className="text-xs text-slate-400">{item.desc}</p></div>
                         </div>
                         <ToggleSwitch enabled={settings[item.key]} onChange={() => setSettings(prev => ({ ...prev, [item.key]: !prev[item.key] }))} />
                     </div>
                 ))}
-                <div className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-xl">
+                <div className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-sm">
                     <div><p className="font-bold text-sm text-slate-900">Session Timeout</p><p className="text-xs text-slate-400">Auto-logout after inactivity</p></div>
-                    <select value={settings.sessionTimeout} onChange={(e) => setSettings({ ...settings, sessionTimeout: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none">
+                    <select value={settings.sessionTimeout} onChange={(e) => setSettings({ ...settings, sessionTimeout: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-sm text-sm outline-none">
                         <option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hour</option><option value="120">2 hours</option>
                     </select>
                 </div>
@@ -92,7 +114,7 @@ const SecuritySettings: React.FC = () => {
                     <button className="text-xs font-bold text-red-500 hover:underline">Revoke All</button>
                 </div>
                 {sessions.map((s, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                    <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-sm">
                         <div className="flex items-center space-x-3">
                             <Monitor className="w-5 h-5 text-slate-400" />
                             <div>
@@ -109,3 +131,5 @@ const SecuritySettings: React.FC = () => {
 };
 
 export default SecuritySettings;
+
+
