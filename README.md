@@ -61,6 +61,4 @@ src/
 
 See [backend.md](./backend.md) for the full backend architecture design including API specs, database schema, and cloud deployment diagrams.
 
-## License
-
 MIT
