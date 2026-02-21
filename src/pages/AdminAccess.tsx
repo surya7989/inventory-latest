@@ -132,17 +132,6 @@ const AdminAccess: React.FC = () => {
                 </div>
             </div>
 
-            {/* Security Logs Placeholder */}
-            <div className="bg-slate-900 rounded-2xl p-8 text-white relative overflow-hidden">
-                <div className="relative z-10">
-                    <h3 className="text-xl font-black uppercase tracking-widest mb-2">Security Audit Trails</h3>
-                    <p className="text-slate-400 text-sm font-bold mb-6 max-w-lg">Monitor all sensitive administrative actions across the Nexarats network in real-time.</p>
-                    <button className="px-6 py-2.5 bg-red-600 text-white rounded-sm font-black text-[10px] uppercase tracking-widest hover:bg-red-700 transition-all">
-                        View Audit Logs
-                    </button>
-                </div>
-                <ShieldCheck className="absolute -right-12 -bottom-12 w-64 h-64 text-white/5 rotate-12" />
-            </div>
         </div>
     );
 };
