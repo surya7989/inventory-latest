@@ -30,19 +30,17 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors, tra
     const activeCustomerIds = new Set(customers.map(c => c.id));
     const validTransactions = transactions.filter(t => activeCustomerIds.has(t.customerId));
 
-    // Revenue from valid actual sales
-    const salesRevenue = validTransactions.reduce((sum, t) => sum + (Number(t.total) || 0), 0);
-    // Historical customer payments (if no transactions exist)
-    const historicalRevenue = customers.reduce((sum, c) => sum + (Number(c.totalPaid) || 0), 0);
-
-    // Total Revenue logic matched with Dashboard "Net Sales"
-    // If no customers exist, the total is always zero.
-    const totalRevenue = customers.length === 0 ? 0 : (salesRevenue > 0 ? salesRevenue : historicalRevenue);
-
-    const totalGstCollected = validTransactions.reduce((sum, t) => sum + (Number(t.gstAmount) || 0), 0);
     const totalProducts = products.length;
     const totalCustomers = customers.length;
     const totalVendors = vendors.length;
+
+    // Corrected Total Revenue logic: sum of all customer payments + direct transactions
+    // This ensures that even without transaction logs, historical revenue is captured.
+    const totalRevenue = customers.reduce((sum, c) => sum + (Number(c.totalPaid) || 0), 0) +
+        validTransactions.filter(t => t.customerId === 'WALK-IN').reduce((sum, t) => sum + Number(t.total), 0);
+
+    // Tax collected from logged transactions
+    const totalGstCollected = validTransactions.reduce((sum, t) => sum + (Number(t.gstAmount) || 0), 0);
 
     // Potential Revenue (Stock Value + Projected GST)
     const potentialRevenue = products.reduce((sum, p) => {
@@ -69,10 +67,11 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors, tra
     // Category Distribution (real percentage by inventory value)
     const categoryData = Object.entries(catRevMap).map(([name, data], idx) => ({
         name,
-        value: totalRevenue > 0 ? Math.round((data.revenue / totalRevenue) * 100) : 0,
+        value: products.length > 0 ? Math.round((data.revenue / potentialRevenue) * 100) : 0,
         color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
-    }));
-    if (categoryData.length === 0) categoryData.push({ name: 'No Data', value: 100, color: '#94A3B8' });
+    })).filter(d => d.value > 0);
+
+    if (categoryData.length === 0) categoryData.push({ name: 'No Stock', value: 100, color: '#94A3B8' });
 
     // Top Products (real data sorted by revenue)
     const topProducts = [...products]
@@ -89,18 +88,18 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors, tra
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                 {[
-                    { title: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: '+12.5%', positive: true, icon: IndianRupee, color: 'bg-green-500' },
-                    { title: 'Potential Value', value: `₹${potentialRevenue.toLocaleString()}`, change: '+3.1%', positive: true, icon: TrendingUp, color: 'bg-orange-500' },
-                    { title: 'Tax Collected', value: `₹${totalGstCollected.toLocaleString()}`, change: '+10.2%', positive: true, icon: ShieldCheck, color: 'bg-indigo-500' },
-                    { title: 'Customers', value: totalCustomers.toString(), change: '+8%', positive: true, icon: Users, color: 'bg-purple-600' },
+                    { title: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: '0%', positive: true, icon: IndianRupee, color: 'bg-green-500' },
+                    { title: 'Potential Value', value: `₹${potentialRevenue.toLocaleString()}`, change: '0%', positive: true, icon: TrendingUp, color: 'bg-orange-500' },
+                    { title: 'Tax Collected', value: `₹${totalGstCollected.toLocaleString()}`, change: '0%', positive: true, icon: ShieldCheck, color: 'bg-indigo-500' },
+                    { title: 'Customers', value: totalCustomers.toString(), change: '0%', positive: true, icon: Users, color: 'bg-purple-600' },
                 ].map((card, idx) => (
                     <div key={idx} className="bg-white p-5 rounded border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <div className={`w-10 h-10 rounded-sm ${card.color} flex items-center justify-center`}>
-                                <card.icon className="w-5 h-5 text-white" />
+                                <card.icon className="w-3.5 h-3.5 text-white" />
                             </div>
                             <span className={`text-xs font-bold ${card.positive ? 'text-green-600' : 'text-red-500'} flex items-center space-x-1`}>
-                                {card.positive ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                {card.positive ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
                                 <span>{card.change}</span>
                             </span>
                         </div>
@@ -129,9 +128,9 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors, tra
                     </div>
                 </div>
 
-                {/* Category Distribution */}
+                {/* Inventory Value Distribution */}
                 <div className="bg-white p-4 lg:p-6 rounded border border-slate-100 shadow-sm">
-                    <h3 className="text-base lg:text-lg font-black text-slate-900 mb-6">Category Distribution</h3>
+                    <h3 className="text-base lg:text-lg font-black text-slate-900 mb-6">Inventory Value Distribution</h3>
                     <div className="flex flex-col sm:flex-row items-center justify-between">
                         <div className="w-full sm:w-1/2 h-52">
                             <ResponsiveContainer width="100%" height="100%">
@@ -139,21 +138,39 @@ const Analytics: React.FC<AnalyticsProps> = ({ products, customers, vendors, tra
                                     <Pie data={categoryData} innerRadius={55} outerRadius={80} paddingAngle={5} dataKey="value">
                                         {categoryData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
-                        <div className="w-full sm:w-1/2 space-y-3 mt-4 sm:mt-0">
-                            {categoryData.map((item, idx) => (
+                        <div className="w-full sm:w-1/2 space-y-3 mt-4 sm:mt-0 px-4">
+                            {categoryData.slice(0, 5).map((item, idx) => (
                                 <div key={idx} className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                        <span className="text-xs font-bold text-slate-600">{item.name}</span>
+                                        <span className="text-xs font-bold text-slate-600 truncate max-w-[100px]">{item.name}</span>
                                     </div>
                                     <span className="text-xs font-black text-slate-900">{item.value}%</span>
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+                {/* Product Performance Bar Chart */}
+                <div className="bg-white p-4 lg:p-6 rounded border border-slate-100 shadow-sm">
+                    <h3 className="text-base lg:text-lg font-black text-slate-900 mb-6">High Value Stock Segments</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={topProducts.slice(0, 10)} layout="vertical">
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} />
+                                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} width={120} />
+                                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                                <Bar dataKey="revenue" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={20} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             </div>

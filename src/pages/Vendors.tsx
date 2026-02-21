@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Filter, Plus, Edit2, Trash2, Phone, Mail, X, Building2, Upload, ChevronDown, Eye, ArrowLeft, MoreVertical, Calendar, Clock, CreditCard, ShieldCheck, MapPin, Printer, Send, FileText, Download, Check, FileDown, FileSpreadsheet, ArrowDownToLine } from 'lucide-react';
 import { Vendor, PurchaseOrder } from '../types';
+import Portal from '../components/Portal';
+
 
 interface VendorsProps {
     vendors: Vendor[];
@@ -109,7 +111,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                         onClick={() => setSelectedVendorId(null)}
                         className="absolute top-6 left-6 p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm transition-all"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-3.5 h-3.5" />
                     </button>
 
                     {selectedVendor.image ? (
@@ -129,15 +131,15 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                         </div>
                         <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-sm font-bold text-slate-400">
                             <div className="flex items-center space-x-2">
-                                <ShieldCheck className="w-4 h-4 text-purple-500" />
+                                <ShieldCheck className="w-3.5 h-3.5 text-purple-500" />
                                 <span>{selectedVendor.id}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Phone className="w-4 h-4" />
+                                <Phone className="w-3.5 h-3.5" />
                                 <span>{selectedVendor.phone}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Mail className="w-4 h-4" />
+                                <Mail className="w-3.5 h-3.5" />
                                 <span>{selectedVendor.email}</span>
                             </div>
                         </div>
@@ -157,7 +159,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                             <div className="flex items-end justify-between">
                                 <h3 className={`text-2xl font-black ${m.color}`}>{m.value}</h3>
                                 <div className={`p-2.5 rounded ${m.bg}`}>
-                                    <m.icon className={`w-5 h-5 ${m.color}`} />
+                                    <m.icon className={`w-4 h-4 ${m.color}`} />
                                 </div>
                             </div>
                         </div>
@@ -172,11 +174,11 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                 <h3 className="text-xl font-black text-slate-900">Recent Purchases</h3>
                                 <div className="flex items-center space-x-4 w-full md:w-auto">
                                     <div className="relative flex-1 md:w-64">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                                         <input placeholder="Search purchases..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-sm text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none" />
                                     </div>
                                     <button className="p-3 bg-slate-50 text-slate-400 rounded-sm hover:bg-slate-100 transition-all">
-                                        <Download className="w-4 h-4" />
+                                        <Download className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
                             </div>
@@ -218,7 +220,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         <button className="p-2 text-slate-400 hover:text-purple-600 transition-all">
-                                                            <MoreVertical className="w-5 h-5" />
+                                                            <MoreVertical className="w-3.5 h-3.5" />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -289,15 +291,15 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Vendor Actions</h4>
                                 <div className="space-y-3">
                                     <button className="w-full py-4 px-6 bg-white border-2 border-slate-100 rounded font-black text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 text-sm">
-                                        <Plus className="w-4 h-4" />
+                                        <Plus className="w-3.5 h-3.5" />
                                         <span>Create Purchase Order</span>
                                     </button>
                                     <button className="w-full py-4 px-6 bg-white border-2 border-slate-100 rounded font-black text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 text-sm">
-                                        <Send className="w-4 h-4" />
+                                        <Send className="w-3.5 h-3.5" />
                                         <span>Send Inquiry</span>
                                     </button>
                                     <button className="w-full py-4 px-6 bg-white border-2 border-slate-100 rounded font-black text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 text-sm">
-                                        <Download className="w-4 h-4" />
+                                        <Download className="w-3.5 h-3.5" />
                                         <span>Purchase History</span>
                                     </button>
                                 </div>
@@ -313,7 +315,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded border border-slate-100 shadow-sm">
                 <div className="relative w-full sm:w-80">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                     <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search vendors..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-sm text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
                 <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
@@ -325,7 +327,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                 : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                                 }`}
                         >
-                            <Filter className="w-4 h-4" />
+                            <Filter className="w-3.5 h-3.5" />
                             {activeFilter !== 'all' && (
                                 <span className="text-xs">{filtered.length}</span>
                             )}
@@ -361,10 +363,10 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                         onClick={() => setShowExportModal(true)}
                         className="p-3 bg-slate-100 rounded-sm text-slate-500 hover:bg-slate-200 transition-all border border-slate-200"
                     >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-3.5 h-3.5" />
                     </button>
                     <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap">
-                        <Plus className="w-4 h-4" /><span>Add Vendor</span>
+                        <Plus className="w-3.5 h-3.5" /><span>Add Vendor</span>
                     </button>
                 </div>
             </div>
@@ -376,13 +378,13 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                             <th className="px-4 lg:px-6 py-4 w-10">
                                 <div
                                     onClick={toggleSelectAll}
-                                    className={`w-5 h-5 rounded-md border-2 transition-all cursor-pointer flex items-center justify-center ${selectedRows.length === filtered.length && filtered.length > 0
+                                    className={`w-4 h-4 rounded-md border-2 transition-all cursor-pointer flex items-center justify-center ${selectedRows.length === filtered.length && filtered.length > 0
                                         ? 'bg-purple-600 border-purple-600'
                                         : 'border-slate-300 bg-white hover:border-purple-400'
                                         }`}
                                 >
                                     {selectedRows.length === filtered.length && filtered.length > 0 && (
-                                        <Check className="w-3 h-3 text-white" strokeWidth={4} />
+                                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
                                     )}
                                 </div>
                             </th>
@@ -401,13 +403,13 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                 <td className="px-4 lg:px-6 py-4">
                                     <div
                                         onClick={() => toggleRow(v.id)}
-                                        className={`w-5 h-5 rounded-md border-2 transition-all cursor-pointer flex items-center justify-center ${selectedRows.includes(v.id)
+                                        className={`w-4 h-4 rounded-md border-2 transition-all cursor-pointer flex items-center justify-center ${selectedRows.includes(v.id)
                                             ? 'bg-purple-600 border-purple-600'
                                             : 'border-slate-300 bg-white hover:border-purple-400'
                                             }`}
                                     >
                                         {selectedRows.includes(v.id) && (
-                                            <Check className="w-3 h-3 text-white" strokeWidth={4} />
+                                            <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
                                         )}
                                     </div>
                                 </td>
@@ -433,7 +435,7 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                 </td>
                                 <td className="px-4 lg:px-6 py-4 hidden md:table-cell">
                                     <div className="flex items-center space-x-2">
-                                        <Building2 className="w-4 h-4 text-slate-400" />
+                                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
                                         <span className="text-sm font-bold text-slate-600 truncate">{v.businessName}</span>
                                     </div>
                                 </td>
@@ -443,8 +445,8 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                 <td className="px-4 lg:px-6 py-4 font-black text-sm text-red-500">₹{v.pendingAmount.toLocaleString()}</td>
                                 <td className="px-4 lg:px-6 py-4">
                                     <div className="flex space-x-2">
-                                        <button onClick={() => handleEdit(v)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-4 h-4" /></button>
-                                        <button onClick={() => handleDelete(v.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+                                        <button onClick={() => handleEdit(v)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3.5 h-3.5" /></button>
+                                        <button onClick={() => handleDelete(v.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3.5 h-3.5" /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -453,240 +455,247 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                 </table>
             </div>
 
-            {/* Add Vendor Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded w-full max-w-md max-h-[90vh] overflow-y-auto p-6 lg:p-8 relative">
-                        <button onClick={closeModal} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-                        <h2 className="text-2xl font-black text-slate-900 mb-6">{editingId ? 'Edit Vendor' : 'Add Vendor'}</h2>
-                        <div className="space-y-4">
-                            {/* Photo Upload */}
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">Vendor Photo</label>
-                                {formData.image ? (
-                                    <div className="relative group">
-                                        <img src={formData.image} alt="Vendor preview" className="w-full h-36 object-cover rounded-sm border-2 border-slate-100" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-sm transition-all flex items-center justify-center gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setPreviewImage(formData.image)}
-                                                className="px-4 py-2 bg-white text-blue-600 font-bold text-xs rounded-sm hover:bg-blue-50 transition-colors flex items-center gap-1.5"
-                                            >
-                                                <Eye className="w-3.5 h-3.5" /> View
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, image: '' })}
-                                                className="px-4 py-2 bg-white text-red-600 font-bold text-xs rounded-sm hover:bg-red-50 transition-colors"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-all">
-                                            <Upload className="w-7 h-7 text-slate-400 mb-2" />
-                                            <span className="text-sm font-bold text-slate-500">Click to upload photo</span>
-                                            <span className="text-[10px] text-slate-400 mt-1">PNG, JPG up to 5MB</span>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            setFormData({ ...formData, image: reader.result as string });
-                                                        };
-                                                        reader.readAsDataURL(file);
-                                                    }
-                                                }}
-                                            />
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-px flex-1 bg-slate-200"></div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase">or paste URL</span>
-                                            <div className="h-px flex-1 bg-slate-200"></div>
-                                        </div>
-                                        <input
-                                            value={formData.image}
-                                            onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                                            className="w-full px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                            placeholder="https://example.com/photo.jpg"
-                                        />
-                                    </div>
-                                )}
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+
+                        <div className="bg-white rounded-[24px] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
+                            {/* Purple Header */}
+                            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6 flex items-center justify-between sticky top-0 z-10">
+                                <h2 className="text-xl font-black text-white">{editingId ? 'Edit Vendor' : 'Add Vendor'}</h2>
+                                <button onClick={closeModal} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"><X className="w-3.5 h-3.5" /></button>
                             </div>
-                            <div><label className="text-xs font-black text-slate-400 uppercase">Name</label><input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                            <div><label className="text-xs font-black text-slate-400 uppercase">Business Name</label><input value={formData.businessName} onChange={(e) => setFormData({ ...formData, businessName: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                            <div><label className="text-xs font-black text-slate-400 uppercase">GST Number</label><input value={formData.gstNumber} onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                            <div><label className="text-xs font-black text-slate-400 uppercase">Phone</label><input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                            <div><label className="text-xs font-black text-slate-400 uppercase">Email</label><input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
-                            {/* Bill & Payment Section */}
-                            <div className="p-4 bg-slate-50 rounded border border-slate-100 space-y-3">
-                                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Payment Details</p>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div>
-                                        <label className="text-xs font-black text-blue-500 uppercase">Total Bill (₹)</label>
-                                        <input
-                                            type="number"
-                                            value={formData.totalBill}
-                                            onChange={(e) => {
-                                                const bill = e.target.value;
-                                                const paid = parseFloat(formData.totalPaid) || 0;
-                                                const billNum = parseFloat(bill) || 0;
-                                                const pending = Math.max(0, billNum - paid);
-                                                setFormData({ ...formData, totalBill: bill, pendingAmount: pending.toString() });
-                                            }}
-                                            placeholder="0"
-                                            className="w-full mt-1 px-3 py-3 border border-blue-200 bg-blue-50/50 rounded-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-700 text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-black text-green-500 uppercase">Total Paid (₹)</label>
-                                        <input
-                                            type="number"
-                                            value={formData.totalPaid}
-                                            onChange={(e) => {
-                                                const paid = e.target.value;
-                                                const bill = parseFloat(formData.totalBill) || 0;
-                                                const paidNum = parseFloat(paid) || 0;
-                                                const pending = Math.max(0, bill - paidNum);
-                                                setFormData({ ...formData, totalPaid: paid, pendingAmount: pending.toString() });
-                                            }}
-                                            placeholder="0"
-                                            className="w-full mt-1 px-3 py-3 border border-green-200 bg-green-50/50 rounded-sm outline-none focus:ring-2 focus:ring-green-500 font-bold text-green-700 text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-black text-red-500 uppercase">Pending (₹)</label>
-                                        <input
-                                            type="number"
-                                            value={formData.pendingAmount}
-                                            readOnly
-                                            placeholder="0"
-                                            className="w-full mt-1 px-3 py-3 border border-red-200 bg-red-50/50 rounded-sm outline-none font-bold text-red-600 text-sm cursor-not-allowed"
-                                        />
-                                    </div>
-                                </div>
-                                {(() => {
-                                    const bill = parseFloat(formData.totalBill) || 0;
-                                    const paid = parseFloat(formData.totalPaid) || 0;
-                                    const pending = parseFloat(formData.pendingAmount) || 0;
-                                    if (bill <= 0) return null;
-                                    const paidPct = Math.min(100, (paid / bill) * 100);
-                                    return (
-                                        <div className="mt-2">
-                                            <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
-                                                <span>Payment Progress</span>
-                                                <span>{paidPct.toFixed(0)}% paid</span>
+                            <div className="p-6 lg:p-8 space-y-4">
+                                {/* Photo Upload */}
+                                <div>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">Vendor Photo</label>
+                                    {formData.image ? (
+                                        <div className="relative group">
+                                            <img src={formData.image} alt="Vendor preview" className="w-full h-36 object-cover rounded-sm border-2 border-slate-100" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-sm transition-all flex items-center justify-center gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPreviewImage(formData.image)}
+                                                    className="px-4 py-2 bg-white text-blue-600 font-bold text-xs rounded-sm hover:bg-blue-50 transition-colors flex items-center gap-1.5"
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" /> View
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, image: '' })}
+                                                    className="px-4 py-2 bg-white text-red-600 font-bold text-xs rounded-sm hover:bg-red-50 transition-colors"
+                                                >
+                                                    Remove
+                                                </button>
                                             </div>
-                                            <div className="w-full h-2 bg-red-100 rounded-full overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full transition-all duration-300 ${paidPct >= 100 ? 'bg-green-500' : paidPct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                                    style={{ width: `${paidPct}%` }}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-all">
+                                                <Upload className="w-3.5 h-3.5 text-slate-400 mb-2" />
+                                                <span className="text-sm font-bold text-slate-500">Click to upload photo</span>
+                                                <span className="text-[10px] text-slate-400 mt-1">PNG, JPG up to 5MB</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => {
+                                                                setFormData({ ...formData, image: reader.result as string });
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }}
                                                 />
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-px flex-1 bg-slate-200"></div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase">or paste URL</span>
+                                                <div className="h-px flex-1 bg-slate-200"></div>
                                             </div>
-                                            {pending > 0 && (
-                                                <p className="text-[10px] font-bold text-red-500 mt-1">₹{pending.toLocaleString()} remaining to pay</p>
-                                            )}
-                                            {pending === 0 && paid > 0 && (
-                                                <p className="text-[10px] font-bold text-green-600 mt-1">✓ Fully paid</p>
-                                            )}
+                                            <input
+                                                value={formData.image}
+                                                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                                                className="w-full px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                placeholder="https://example.com/photo.jpg"
+                                            />
                                         </div>
-                                    );
-                                })()}
+                                    )}
+                                </div>
+                                <div><label className="text-xs font-black text-slate-400 uppercase">Name</label><input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
+                                <div><label className="text-xs font-black text-slate-400 uppercase">Business Name</label><input value={formData.businessName} onChange={(e) => setFormData({ ...formData, businessName: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
+                                <div><label className="text-xs font-black text-slate-400 uppercase">GST Number</label><input value={formData.gstNumber} onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
+                                <div><label className="text-xs font-black text-slate-400 uppercase">Phone</label><input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
+                                <div><label className="text-xs font-black text-slate-400 uppercase">Email</label><input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" /></div>
+                                {/* Bill & Payment Section */}
+                                <div className="p-4 bg-slate-50 rounded border border-slate-100 space-y-3">
+                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Payment Details</p>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="text-xs font-black text-blue-500 uppercase">Total Bill (₹)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.totalBill}
+                                                onChange={(e) => {
+                                                    const bill = e.target.value;
+                                                    const paid = parseFloat(formData.totalPaid) || 0;
+                                                    const billNum = parseFloat(bill) || 0;
+                                                    const pending = Math.max(0, billNum - paid);
+                                                    setFormData({ ...formData, totalBill: bill, pendingAmount: pending.toString() });
+                                                }}
+                                                placeholder="0"
+                                                className="w-full mt-1 px-3 py-3 border border-blue-200 bg-blue-50/50 rounded-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-700 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-black text-green-500 uppercase">Total Paid (₹)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.totalPaid}
+                                                onChange={(e) => {
+                                                    const paid = e.target.value;
+                                                    const bill = parseFloat(formData.totalBill) || 0;
+                                                    const paidNum = parseFloat(paid) || 0;
+                                                    const pending = Math.max(0, bill - paidNum);
+                                                    setFormData({ ...formData, totalPaid: paid, pendingAmount: pending.toString() });
+                                                }}
+                                                placeholder="0"
+                                                className="w-full mt-1 px-3 py-3 border border-green-200 bg-green-50/50 rounded-sm outline-none focus:ring-2 focus:ring-green-500 font-bold text-green-700 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-black text-red-500 uppercase">Pending (₹)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.pendingAmount}
+                                                readOnly
+                                                placeholder="0"
+                                                className="w-full mt-1 px-3 py-3 border border-red-200 bg-red-50/50 rounded-sm outline-none font-bold text-red-600 text-sm cursor-not-allowed"
+                                            />
+                                        </div>
+                                    </div>
+                                    {(() => {
+                                        const bill = parseFloat(formData.totalBill) || 0;
+                                        const paid = parseFloat(formData.totalPaid) || 0;
+                                        const pending = parseFloat(formData.pendingAmount) || 0;
+                                        if (bill <= 0) return null;
+                                        const paidPct = Math.min(100, (paid / bill) * 100);
+                                        return (
+                                            <div className="mt-2">
+                                                <div className="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
+                                                    <span>Payment Progress</span>
+                                                    <span>{paidPct.toFixed(0)}% paid</span>
+                                                </div>
+                                                <div className="w-full h-2 bg-red-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-300 ${paidPct >= 100 ? 'bg-green-500' : paidPct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                        style={{ width: `${paidPct}%` }}
+                                                    />
+                                                </div>
+                                                {pending > 0 && (
+                                                    <p className="text-[10px] font-bold text-red-500 mt-1">₹{pending.toLocaleString()} remaining to pay</p>
+                                                )}
+                                                {pending === 0 && paid > 0 && (
+                                                    <p className="text-[10px] font-bold text-green-600 mt-1">✓ Fully paid</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex justify-end space-x-3 mt-6">
-                            <button onClick={closeModal} className="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-sm">Cancel</button>
-                            <button onClick={handleSave} disabled={!formData.name} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-sm disabled:opacity-50">{editingId ? 'Update' : 'Add'}</button>
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button onClick={closeModal} className="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-sm">Cancel</button>
+                                <button onClick={handleSave} disabled={!formData.name} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-sm disabled:opacity-50">{editingId ? 'Update' : 'Add'}</button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
 
             {/* Image Preview Modal */}
             {previewImage && (
-                <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
-                    <div className="relative max-w-3xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
-                        <button
-                            onClick={() => setPreviewImage(null)}
-                            className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-slate-500 hover:text-red-500 transition-colors z-10"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <img src={previewImage} alt="Preview" className="w-full h-full object-contain rounded" />
+                <Portal>
+                    <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
+                        <div className="relative max-w-3xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => setPreviewImage(null)} className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-slate-500 hover:text-red-500 transition-colors z-10">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                            <img src={previewImage} alt="Preview" className="w-full h-full object-contain rounded" />
+                        </div>
                     </div>
-                </div>
+                </Portal>
             )}
             {/* Export Modal */}
             {showExportModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative px-8 py-12 lg:px-12">
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setShowExportModal(false)}
-                            className="absolute top-8 right-8 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
+                <Portal>
 
-                        <div className="text-center mb-8">
-                            <h2 className="text-3xl font-black text-slate-900 mb-3">Export Items</h2>
-                            <p className="text-slate-500 font-bold max-w-md mx-auto">
-                                Export your vendor database using Excel, PDF, or CSV formats.
-                            </p>
-                        </div>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative px-8 py-12 lg:px-12">
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowExportModal(false)}
+                                className="absolute top-8 right-8 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
 
-                        <div className="bg-white border-2 border-slate-50 rounded-[32px] p-8 lg:p-10 shadow-sm relative overflow-hidden">
-                            {/* Mesh Gradient Background */}
-                            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-blue-50 rounded-full blur-[100px] -z-1" />
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-black text-slate-900 mb-3">Export Items</h2>
+                                <p className="text-slate-500 font-bold max-w-md mx-auto">
+                                    Export your vendor database using Excel, PDF, or CSV formats.
+                                </p>
+                            </div>
 
-                            <div className="flex flex-col items-center text-center relative z-10">
-                                <div className="w-16 h-16 bg-blue-50 rounded flex items-center justify-center mb-6 border border-blue-100">
-                                    <FileDown className="w-8 h-8 text-blue-600" />
-                                </div>
-                                <h3 className="text-xl font-black text-slate-900 mb-2">Export Vendor Data</h3>
-                                <p className="text-sm font-bold text-slate-400 mb-8">Choose the format you want to export your items.</p>
+                            <div className="bg-white border-2 border-slate-50 rounded-[32px] p-8 lg:p-10 shadow-sm relative overflow-hidden">
+                                {/* Mesh Gradient Background */}
+                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-blue-50 rounded-full blur-[100px] -z-1" />
 
-                                <div className="w-full space-y-4 max-w-sm mx-auto">
-                                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-blue-100 transition-all active:scale-95 group">
-                                        <FileSpreadsheet className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                        <span>Export as Excel (.xlsx)</span>
-                                    </button>
+                                <div className="flex flex-col items-center text-center relative z-10">
+                                    <div className="w-16 h-16 bg-blue-50 rounded flex items-center justify-center mb-6 border border-blue-100">
+                                        <FileDown className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-900 mb-2">Export Vendor Data</h3>
+                                    <p className="text-sm font-bold text-slate-400 mb-8">Choose the format you want to export your items.</p>
 
-                                    <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
-                                        <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                        <span>Export as CSV (.csv)</span>
-                                    </button>
+                                    <div className="w-full space-y-4 max-w-sm mx-auto">
+                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-blue-100 transition-all active:scale-95 group">
+                                            <FileSpreadsheet className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                            <span>Export as Excel (.xlsx)</span>
+                                        </button>
 
-                                    <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
-                                        <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                        <span>Export as PDF (.pdf)</span>
-                                    </button>
-                                </div>
+                                        <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
+                                            <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                            <span>Export as CSV (.csv)</span>
+                                        </button>
 
-                                <div className="mt-8 text-left w-full max-w-sm border-t border-slate-100 pt-8">
-                                    <button className="text-blue-600 font-black text-sm hover:underline flex items-center space-x-2 mb-6 group">
-                                        <ArrowDownToLine className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-                                        <span>Download sample export format</span>
-                                    </button>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-start space-x-3">
-                                            <div className="w-5 h-5 bg-green-50 rounded-sm flex items-center justify-center mt-0.5">
-                                                <Check className="w-3 h-3 text-green-600" />
-                                            </div>
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Supports: .xlsx, .csv, .pdf</span>
-                                        </li>
-                                    </ul>
+                                        <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
+                                            <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                            <span>Export as PDF (.pdf)</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="mt-8 text-left w-full max-w-sm border-t border-slate-100 pt-8">
+                                        <button className="text-blue-600 font-black text-sm hover:underline flex items-center space-x-2 mb-6 group">
+                                            <ArrowDownToLine className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                                            <span>Download sample export format</span>
+                                        </button>
+                                        <ul className="space-y-3">
+                                            <li className="flex items-start space-x-3">
+                                                <div className="w-4 h-4 bg-green-50 rounded-sm flex items-center justify-center mt-0.5">
+                                                    <Check className="w-2.5 h-2.5 text-green-600" />
+                                                </div>
+                                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Supports: .xlsx, .csv, .pdf</span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
         </div>
     );

@@ -1,7 +1,0 @@
-{
-  "name": "Nexarats - Secure & Simple Inventory Control",
-  "description": "A comprehensive enterprise-grade inventory, billing, and management tool for businesses, featuring real-time analytics, customer/vendor management, and flexible payment processing.",
-  "requestFramePermissions": [
-    "camera"
-  ]
-}

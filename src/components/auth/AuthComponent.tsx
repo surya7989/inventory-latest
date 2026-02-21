@@ -141,7 +141,7 @@ export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NexaratsINV
             {modalStatus !== 'closed' && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white border-4 border-gray-200 rounded p-8 w-full max-w-sm flex flex-col items-center gap-4 mx-2">
-                        {(modalStatus === 'error' || modalStatus === 'success') && <button onClick={closeModal} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-900 transition-colors"><X className="w-5 h-5" /></button>}
+                        {(modalStatus === 'error' || modalStatus === 'success') && <button onClick={closeModal} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-900 transition-colors"><X className="w-4 h-4" /></button>}
                         {modalStatus === 'error' && <>
                             <AlertCircle className="w-12 h-12 text-red-500" />
                             <p className="text-lg font-medium text-gray-900">{modalErrorMessage}</p>
@@ -210,7 +210,7 @@ export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NexaratsINV
                                         <div className="w-10 pl-2 flex items-center justify-center"><Mail className="h-5 w-5 text-gray-600" /></div>
                                         <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={handleKeyDown} className="h-12 flex-grow bg-transparent text-gray-900 placeholder:text-gray-400 outline-none" />
                                         <div className={cn("overflow-hidden transition-all duration-300", isEmailValid && authStep === 'email' ? "w-10 pr-1" : "w-0")}>
-                                            <GlassButton type="button" onClick={handleProgressStep} size="icon"><ArrowRight className="w-5 h-5" /></GlassButton>
+                                            <GlassButton type="button" onClick={handleProgressStep} size="icon"><ArrowRight className="w-4 h-4" /></GlassButton>
                                         </div>
                                     </div>
                                 </BlurFade>
@@ -218,11 +218,11 @@ export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NexaratsINV
                                     {authStep === "password" && <BlurFade key="password-field" className="w-full">
                                         <div className="glass-input">
                                             <div className="w-10 pl-2 flex items-center justify-center">
-                                                {isPasswordValid ? <button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button> : <Lock className="h-5 w-5 text-gray-600" />}
+                                                {isPasswordValid ? <button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button> : <Lock className="h-5 w-5 text-gray-600" />}
                                             </div>
                                             <input ref={passwordInputRef} type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={handleKeyDown} className="h-12 flex-grow bg-transparent text-gray-900 placeholder:text-gray-400 outline-none" />
                                             <div className={cn("overflow-hidden transition-all duration-300", isPasswordValid ? "w-10 pr-1" : "w-0")}>
-                                                <GlassButton type="button" onClick={handleProgressStep} size="icon"><ArrowRight className="w-5 h-5" /></GlassButton>
+                                                <GlassButton type="button" onClick={handleProgressStep} size="icon"><ArrowRight className="w-4 h-4" /></GlassButton>
                                             </div>
                                         </div>
                                         <button type="button" onClick={handleGoBack} className="mt-4 flex items-center gap-2 text-xs text-gray-400 hover:text-gray-900 transition-colors mx-auto"><ArrowLeft className="w-3 h-3" /> Go back</button>
@@ -234,11 +234,11 @@ export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NexaratsINV
                             {authStep === 'confirmPassword' && <BlurFade key="confirm-password-field" className="w-full">
                                 <div className="glass-input">
                                     <div className="w-10 pl-2 flex items-center justify-center">
-                                        {isConfirmPasswordValid ? <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button> : <Lock className="h-5 w-5 text-gray-600" />}
+                                        {isConfirmPasswordValid ? <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button> : <Lock className="h-5 w-5 text-gray-600" />}
                                     </div>
                                     <input ref={confirmPasswordInputRef} type={showConfirmPassword ? "text" : "password"} placeholder="Confirm" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-12 flex-grow bg-transparent text-gray-900 placeholder:text-gray-400 outline-none" />
                                     <div className={cn("overflow-hidden transition-all duration-300", isConfirmPasswordValid ? "w-10 pr-1" : "w-0")}>
-                                        <GlassButton type="submit" size="icon"><ArrowRight className="w-5 h-5" /></GlassButton>
+                                        <GlassButton type="submit" size="icon"><ArrowRight className="w-4 h-4" /></GlassButton>
                                     </div>
                                 </div>
                                 <button type="button" onClick={handleGoBack} className="mt-4 flex items-center gap-2 text-xs text-gray-400 hover:text-gray-900 transition-colors mx-auto"><ArrowLeft className="w-3 h-3" /> Go back</button>

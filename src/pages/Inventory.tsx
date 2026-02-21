@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, Grid, List, Edit2, Trash2, X, Image as ImageIcon, Upload, TrendingUp, TrendingDown, Calculator, Eye, FileSpreadsheet, FileText, Download, Check } from 'lucide-react';
+import { Search, Plus, Filter, Grid, List, Edit2, Trash2, X, Image as ImageIcon, Upload, TrendingUp, TrendingDown, Calculator, Eye, FileSpreadsheet, FileText, Download, Check, Tag, Package, Boxes, Shield, Camera, RefreshCw, ShieldCheck, DollarSign, Trash2 as TrashIcon, ChevronDown, Box, Scale, Droplet } from 'lucide-react';
 import { Product } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import Portal from '../components/Portal';
+
 
 interface InventoryProps {
     products: Product[];
@@ -17,9 +19,10 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
         taxInclusive: false,
     });
 
-    const emptyForm = {
-        name: '', category: 'General', price: '', purchasePrice: '', stock: '', sku: '', gstRate: gstConfig.defaultRate,
-        unit: 'Pieces', expiryDate: '', returns: 'Returnable', image: ''
+    const emptyForm: any = {
+        name: '', category: '', price: '', purchasePrice: '', stock: '', sku: '', gstRate: gstConfig.defaultRate,
+        unit: '', mrp: '', discountPercentage: '', profitPercentage: '', expiryDate: '', returns: 'Returnable', image: '',
+        hsnCode: '', minStock: '10', taxType: 'Inclusive'
     };
 
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,6 +43,8 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
     const [selectedStatus, setSelectedStatus] = useState('All');
     const [showImportModal, setShowImportModal] = useState(false);
     const [reviewBeforeImport, setReviewBeforeImport] = useState(true);
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+    const [showUnitDropdown, setShowUnitDropdown] = useState(false);
 
     const filtered = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -55,21 +60,35 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
 
     const handleSave = () => {
         const stock = parseInt(formData.stock as string) || 0;
-        const status: Product['status'] = stock === 0 ? 'Out of Stock' : stock < 10 ? 'Low Stock' : 'In Stock';
+        const minStock = parseInt(formData.minStock as string) || 10;
+        const status: Product['status'] = stock === 0 ? 'Out of Stock' : stock <= minStock ? 'Low Stock' : 'In Stock';
+
+        const price = parseFloat(formData.price as string) || 0;
+        const purchasePrice = parseFloat(formData.purchasePrice as string) || 0;
+        const mrp = Number(formData.mrp) || 0;
+        const gst = parseFloat(formData.gstRate as string) || 0;
+        const revenue = formData.taxType === 'Inclusive' ? price / (1 + gst / 100) : price;
+
         const productData: Product = {
             id: editingId || Date.now().toString(),
             name: formData.name,
             category: formData.category,
-            price: parseFloat(formData.price as string) || 0,
-            purchasePrice: parseFloat(formData.purchasePrice as string) || 0,
+            price,
+            purchasePrice,
             stock,
             status,
-            sku: formData.sku || `SKU-${Date.now()}`,
-            gstRate: parseFloat(formData.gstRate as string) || 0,
+            sku: formData.sku || '',
+            gstRate: gst,
             unit: formData.unit,
+            mrp,
+            discountPercentage: mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0,
             expiryDate: formData.expiryDate,
             returns: formData.returns as Product['returns'],
-            image: formData.image || `https://picsum.photos/id/${Math.floor(Math.random() * 100)}/200/200`,
+            profit: revenue - purchasePrice,
+            image: formData.image || '',
+            hsnCode: formData.hsnCode,
+            minStock: minStock,
+            taxType: formData.taxType as 'Inclusive' | 'Exclusive'
         };
 
         if (editingId) {
@@ -90,12 +109,29 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
             sku: product.sku,
             gstRate: product.gstRate.toString(),
             unit: product.unit || 'Pieces',
+            mrp: product.mrp?.toString() || '',
+            discountPercentage: product.discountPercentage?.toString() || '',
+            profitPercentage: product.purchasePrice > 0 ? (((product.price - product.purchasePrice) / product.purchasePrice) * 100).toFixed(1) : '',
             expiryDate: product.expiryDate || '',
             returns: product.returns || 'Returnable',
             image: product.image || '',
+            hsnCode: product.hsnCode || '',
+            minStock: product.minStock?.toString() || '10',
+            taxType: product.taxType || 'Inclusive',
         });
         setEditingId(product.id);
         setShowAddModal(true);
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData({ ...formData, image: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleDelete = (id: string) => {
@@ -113,13 +149,13 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
             {/* Top Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded border border-slate-100 shadow-sm">
                 <div className="relative w-full sm:w-80">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
                     <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-sm text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
                 <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
                     <div className="flex bg-slate-100 p-1 rounded-sm">
-                        <button onClick={() => setViewMode('grid')} className={`p-2 rounded-sm ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-slate-400'}`} title="Grid View"><Grid className="w-4 h-4" /></button>
-                        <button onClick={() => setViewMode('list')} className={`p-2 rounded-sm ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-slate-400'}`} title="Table View"><List className="w-4 h-4" /></button>
+                        <button onClick={() => setViewMode('grid')} className={`p-2 rounded-sm ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-slate-400'}`} title="Grid View"><Grid className="w-3 h-3" /></button>
+                        <button onClick={() => setViewMode('list')} className={`p-2 rounded-sm ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-slate-400'}`} title="Table View"><List className="w-3 h-3" /></button>
                     </div>
 
                     <div className="relative">
@@ -127,7 +163,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                             onClick={() => setShowFilters(!showFilters)}
                             className={`p-3 rounded-sm transition-all ${showFilters || selectedCategory !== 'All' || selectedStatus !== 'All' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                         >
-                            <Filter className="w-4 h-4" />
+                            <Filter className="w-3 h-3" />
                         </button>
 
                         {showFilters && (
@@ -184,11 +220,11 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                         onClick={() => setShowImportModal(true)}
                         className="flex items-center space-x-2 bg-slate-100 text-slate-600 px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap hover:bg-slate-200 transition-all"
                     >
-                        <Upload className="w-4 h-4" /><span>Import</span>
+                        <Upload className="w-3 h-3" /><span>Import</span>
                     </button>
 
                     <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap shadow-lg shadow-blue-200">
-                        <Plus className="w-4 h-4" /><span>Add Product</span>
+                        <Plus className="w-3 h-3" /><span>Add Product</span>
                     </button>
                 </div>
             </div>
@@ -198,8 +234,18 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
                     {filtered.map(p => (
                         <div key={p.id} className="bg-white p-4 rounded border border-slate-100 shadow-sm group hover:border-blue-200 transition-all">
-                            <div className="aspect-square bg-slate-50 rounded-sm mb-4 overflow-hidden relative">
-                                <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.name} />
+                            <div className="aspect-square bg-slate-50 rounded-sm mb-4 overflow-hidden relative flex items-center justify-center">
+                                {p.image ? (
+                                    <img
+                                        src={p.image}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                        alt={p.name}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-black text-4xl">
+                                        {p.name.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
                                 <span className={`absolute top-2 right-2 px-2 py-1 rounded-sm text-[10px] font-black uppercase ${p.status === 'In Stock' ? 'bg-green-100 text-green-600' : p.status === 'Low Stock' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
                                     }`}>{p.status}</span>
                             </div>
@@ -207,12 +253,39 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                             <p className="text-[10px] text-slate-400 font-bold mb-2">{p.category} · SKU: {p.sku}</p>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-lg font-black text-slate-900">₹{p.price}</p>
-                                    <p className="text-[10px] font-bold text-slate-400">Stock: {p.stock}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-lg font-black text-slate-900">₹{p.price}</p>
+                                        {p.mrp > p.price && (
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[10px] text-slate-400 line-through font-bold">₹{p.mrp}</p>
+                                                <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-black">
+                                                    {(((p.mrp - p.price) / p.mrp) * 100).toFixed(1)}% OFF
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
+                                        <div className="flex flex-col">
+                                            <p className="text-[10px] font-bold text-slate-400 leading-none">Stock: {p.stock}</p>
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <ShieldCheck className="w-3 h-3 text-slate-300" />
+                                                <p className="text-[9px] font-black text-slate-400 tracking-tighter uppercase">{p.gstRate}% {p.taxType}</p>
+                                            </div>
+                                        </div>
+                                        <p className={`text-[10px] font-black ${(() => {
+                                            const revenue = p.taxType === 'Inclusive' ? p.price / (1 + p.gstRate / 100) : p.price;
+                                            return (revenue - p.purchasePrice) >= 0 ? 'text-emerald-600' : 'text-red-500';
+                                        })()}`}>
+                                            Profit: ₹{(() => {
+                                                const revenue = p.taxType === 'Inclusive' ? p.price / (1 + p.gstRate / 100) : p.price;
+                                                return (revenue - p.purchasePrice).toFixed(0);
+                                            })()}
+                                        </p>
+                                    </div>
                                 </div>
                                 <div className="flex space-x-2">
-                                    <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-4 h-4" /></button>
-                                    <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+                                    <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3 h-3" /></button>
+                                    <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3 h-3" /></button>
                                 </div>
                             </div>
                         </div>
@@ -225,11 +298,12 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                             <tr>
                                 <th className="px-4 lg:px-6 py-4">Product</th>
                                 <th className="px-4 lg:px-6 py-4 hidden sm:table-cell">Category</th>
-                                <th className="px-4 lg:px-6 py-4">Price</th>
-                                <th className="px-4 lg:px-6 py-4 hidden md:table-cell">Purchase</th>
+                                <th className="px-4 lg:px-6 py-4">Sale Price</th>
+                                <th className="px-4 lg:px-6 py-4 hidden md:table-cell">Profit / Unit</th>
+                                <th className="px-4 lg:px-6 py-4 hidden md:table-cell">Buying Price</th>
+                                <th className="px-4 lg:px-6 py-4 hidden lg:table-cell">Tax Details</th>
                                 <th className="px-4 lg:px-6 py-4">Stock</th>
                                 <th className="px-4 lg:px-6 py-4 hidden lg:table-cell">Status</th>
-                                <th className="px-4 lg:px-6 py-4 hidden lg:table-cell">GST</th>
                                 <th className="px-4 lg:px-6 py-4">Actions</th>
                             </tr>
                         </thead>
@@ -238,26 +312,67 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                                 <tr key={p.id} className="hover:bg-slate-50/50">
                                     <td className="px-4 lg:px-6 py-4">
                                         <div className="flex items-center space-x-3">
-                                            <img src={p.image} className="w-10 h-10 rounded-sm object-cover" alt={p.name} />
+                                            {p.image ? (
+                                                <img
+                                                    src={p.image}
+                                                    className="w-10 h-10 rounded-sm object-cover"
+                                                    alt={p.name}
+                                                />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-sm flex items-center justify-center bg-blue-50 text-blue-600 font-black text-lg">
+                                                    {p.name.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="font-bold text-sm text-slate-900">{p.name}</p>
-                                                <p className="text-[10px] text-slate-400">SKU: {p.sku}</p>
+                                                {p.sku && <p className="text-[10px] text-slate-400">SKU: {p.sku}</p>}
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-4 lg:px-6 py-4 text-xs font-bold text-slate-500 hidden sm:table-cell">{p.category}</td>
-                                    <td className="px-4 lg:px-6 py-4 font-black text-sm">₹{p.price}</td>
-                                    <td className="px-4 lg:px-6 py-4 text-sm text-slate-500 hidden md:table-cell">₹{p.purchasePrice}</td>
+                                    <td className="px-4 lg:px-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-sm text-slate-900">₹{p.price}</span>
+                                            {p.mrp > p.price && (
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className="text-[10px] text-slate-400 line-through font-bold">₹{p.mrp}</span>
+                                                    <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full font-black">
+                                                        {(((p.mrp - p.price) / p.mrp) * 100).toFixed(1)}% OFF
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 lg:px-6 py-4 hidden md:table-cell">
+                                        <div className="flex flex-col">
+                                            <span className={`font-black text-sm ${(() => {
+                                                const revenue = p.taxType === 'Inclusive' ? p.price / (1 + p.gstRate / 100) : p.price;
+                                                return (revenue - p.purchasePrice) >= 0 ? 'text-emerald-600' : 'text-red-600';
+                                            })()}`}>
+                                                ₹{(() => {
+                                                    const revenue = p.taxType === 'Inclusive' ? p.price / (1 + p.gstRate / 100) : p.price;
+                                                    return (revenue - p.purchasePrice).toFixed(2);
+                                                })()}
+                                            </span>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Net Earnings</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-4 lg:px-6 py-4 text-sm font-bold text-slate-500 hidden md:table-cell">₹{p.purchasePrice}</td>
+                                    <td className="px-4 lg:px-6 py-4 hidden lg:table-cell">
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-[11px] text-slate-700">{p.gstRate}% GST</span>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{p.taxType}</span>
+                                        </div>
+                                    </td>
                                     <td className="px-4 lg:px-6 py-4 font-black text-sm">{p.stock}</td>
                                     <td className="px-4 lg:px-6 py-4 hidden lg:table-cell">
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${p.status === 'In Stock' ? 'bg-green-100 text-green-600' : p.status === 'Low Stock' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
                                             }`}>{p.status}</span>
                                     </td>
-                                    <td className="px-4 lg:px-6 py-4 text-sm text-slate-500 hidden lg:table-cell">{p.gstRate}%</td>
                                     <td className="px-4 lg:px-6 py-4">
                                         <div className="flex space-x-2">
-                                            <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-4 h-4" /></button>
+                                            <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3 h-3" /></button>
+                                            <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3 h-3" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -267,288 +382,694 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                 </div>
             )}
 
-            {/* Add/Edit Product Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 lg:p-8 relative">
-                        <button onClick={closeModal} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-                        <h2 className="text-2xl font-black text-slate-900 mb-6">{editingId ? 'Edit Product' : 'Add New Product'}</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="sm:col-span-2">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Product Name</label>
-                                <input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Category</label>
-                                <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none">
-                                    {['General', 'Dairy', 'Groceries', 'Personal Care', 'Beverages', 'Snacks', 'Electronics'].map(c => <option key={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">SKU</label>
-                                <input value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none" placeholder="Auto-generated if empty" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Selling Price (₹)</label>
-                                <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Purchase Price (₹)</label>
-                                <input type="number" value={formData.purchasePrice} onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
-
-                            {/* Profit Calculator */}
-                            {(() => {
-                                const sell = parseFloat(formData.price as string) || 0;
-                                const purchase = parseFloat(formData.purchasePrice as string) || 0;
-                                const profit = sell - purchase;
-                                const margin = sell > 0 ? (profit / sell) * 100 : 0;
-                                const hasValues = sell > 0 || purchase > 0;
-                                const isProfit = profit > 0;
-                                const isLoss = profit < 0;
-                                return (
-                                    <div className={`sm:col-span-2 p-4 rounded border-2 transition-all ${isProfit ? 'bg-green-50 border-green-200' : isLoss ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'
-                                        }`}>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <div className={`p-2 rounded-sm ${isProfit ? 'bg-green-100' : isLoss ? 'bg-red-100' : 'bg-slate-200'
-                                                }`}>
-                                                <Calculator className={`w-4 h-4 ${isProfit ? 'text-green-600' : isLoss ? 'text-red-600' : 'text-slate-500'
-                                                    }`} />
-                                            </div>
-                                            <span className="text-xs font-black uppercase tracking-widest text-slate-500">Profit Calculator</span>
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-slate-50 rounded-[24px] w-full max-w-2xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col relative animate-in fade-in zoom-in duration-300">
+                            {/* Header */}
+                            <div className="px-8 py-5 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between shrink-0">
+                                <div>
+                                    <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-3">
+                                        <div className="bg-white/20 p-1.5 rounded-lg">
+                                            <Plus className="w-3 h-3 text-white" />
                                         </div>
-                                        {hasValues ? (
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <div className={`p-3 rounded-sm text-center ${isProfit ? 'bg-green-100/70' : isLoss ? 'bg-red-100/70' : 'bg-white'
-                                                    }`}>
-                                                    <div className="flex items-center justify-center gap-1 mb-1">
-                                                        {isProfit ? <TrendingUp className="w-3 h-3 text-green-600" /> : isLoss ? <TrendingDown className="w-3 h-3 text-red-600" /> : null}
-                                                        <p className="text-[10px] font-bold text-slate-500 uppercase">Profit</p>
-                                                    </div>
-                                                    <p className={`text-lg font-black ${isProfit ? 'text-green-700' : isLoss ? 'text-red-700' : 'text-slate-400'
-                                                        }`}>₹{Math.abs(profit).toFixed(2)}</p>
-                                                    {isLoss && <p className="text-[10px] font-bold text-red-500">(Loss)</p>}
-                                                </div>
-                                                <div className={`p-3 rounded-sm text-center ${isProfit ? 'bg-green-100/70' : isLoss ? 'bg-red-100/70' : 'bg-white'
-                                                    }`}>
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Margin</p>
-                                                    <p className={`text-lg font-black ${isProfit ? 'text-green-700' : isLoss ? 'text-red-700' : 'text-slate-400'
-                                                        }`}>{Math.abs(margin).toFixed(1)}%</p>
-                                                </div>
-                                                <div className={`p-3 rounded-sm text-center ${isProfit ? 'bg-green-100/70' : isLoss ? 'bg-red-100/70' : 'bg-white'
-                                                    }`}>
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Per Unit</p>
-                                                    <p className={`text-lg font-black ${isProfit ? 'text-green-700' : isLoss ? 'text-red-700' : 'text-slate-400'
-                                                        }`}>₹{Math.abs(profit).toFixed(2)}</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-slate-400 font-medium text-center py-2">Enter selling and purchase prices to see profit</p>
-                                        )}
-                                    </div>
-                                );
-                            })()}
-
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Stock</label>
-                                <input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                                        {editingId ? 'Modify Product' : 'Register New Item'}
+                                    </h2>
+                                    <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mt-0.5 ml-9">Inventory Management System</p>
+                                </div>
+                                <button onClick={closeModal} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"><X className="w-3.5 h-3.5" /></button>
                             </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">GST Rate (%)</label>
-                                <select value={formData.gstRate} onChange={(e) => setFormData({ ...formData, gstRate: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none">
-                                    {['0', '5', '12', '18', '28'].map(r => <option key={r} value={r}>{r}%</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Unit</label>
-                                <select value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none">
-                                    {['Pieces', 'Kg', 'Liters', 'Meters', 'Box', 'Dozen'].map(u => <option key={u}>{u}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Returns</label>
-                                <select value={formData.returns} onChange={(e) => setFormData({ ...formData, returns: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none">
-                                    <option>Returnable</option>
-                                    <option>Not Returnable</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Expiry Date</label>
-                                <input type="date" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-sm outline-none" />
-                            </div>
-
-                            {/* Photo Upload */}
-                            <div className="sm:col-span-2">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">Product Photo</label>
-                                {formData.image ? (
-                                    <div className="relative group">
-                                        <img src={formData.image} alt="Product preview" className="w-full h-48 object-cover rounded-sm border-2 border-slate-100" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-sm transition-all flex items-center justify-center gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setPreviewImage(formData.image)}
-                                                className="px-4 py-2 bg-white text-blue-600 font-bold text-xs rounded-sm hover:bg-blue-50 transition-colors flex items-center gap-1.5"
-                                            >
-                                                <Eye className="w-3.5 h-3.5" /> View
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, image: '' })}
-                                                className="px-4 py-2 bg-white text-red-600 font-bold text-xs rounded-sm hover:bg-red-50 transition-colors"
-                                            >
-                                                Remove
-                                            </button>
+                            <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 scrollbar-hide bg-slate-50">
+                                {/* SECTION 1: CORE INFORMATION */}
+                                <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm space-y-6">
+                                    <div className="flex items-center gap-2 border-b border-slate-50 pb-4">
+                                        <div className="bg-blue-100 p-1.5 rounded-lg">
+                                            <Package className="w-3 h-3 text-blue-600" />
                                         </div>
+                                        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Item Information</h3>
                                     </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-200 rounded cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-all">
-                                            <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                            <span className="text-sm font-bold text-slate-500">Click to upload photo</span>
-                                            <span className="text-[10px] text-slate-400 mt-1">PNG, JPG up to 5MB</span>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="md:col-span-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Name</label>
                                             <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            setFormData({ ...formData, image: reader.result as string });
-                                                        };
-                                                        reader.readAsDataURL(file);
-                                                    }
-                                                }}
+                                                autoFocus
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                className="w-full mt-1.5 px-5 py-4 bg-slate-50 border-transparent focus:bg-white focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-slate-700 text-lg shadow-sm"
+                                                placeholder="e.g. Samsung Galaxy S24 Ultra"
                                             />
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-px flex-1 bg-slate-200"></div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase">or paste URL</span>
-                                            <div className="h-px flex-1 bg-slate-200"></div>
                                         </div>
-                                        <input
-                                            value={formData.image}
-                                            onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                                            className="w-full px-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                            placeholder="https://example.com/image.jpg"
-                                        />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="relative">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
+                                                <div className="relative mt-1.5">
+                                                    <input
+                                                        type="text"
+                                                        value={formData.category}
+                                                        onFocus={() => setShowCategoryDropdown(true)}
+                                                        onChange={(e) => {
+                                                            setFormData({ ...formData, category: e.target.value });
+                                                            setShowCategoryDropdown(true);
+                                                        }}
+                                                        className="w-full px-5 py-3.5 bg-white border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-700 shadow-sm"
+                                                        placeholder="Search or Select Category"
+                                                    />
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                                        {showCategoryDropdown && formData.category && !['General', 'Dairy', 'Groceries', 'Personal Care', 'Beverages', 'Electronics', ...products.map(p => p.category)].includes(formData.category) && (
+                                                            <div className="bg-emerald-500 p-0.5 rounded-lg animate-pulse" title="New Category Detected">
+                                                                <Plus className="w-2.5 h-2.5 text-white" />
+                                                            </div>
+                                                        )}
+                                                        <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                                                    </div>
+                                                </div>
+
+                                                {showCategoryDropdown && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-[60]" onClick={() => setShowCategoryDropdown(false)}></div>
+                                                        <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl z-[70] max-h-48 overflow-y-auto p-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-200 scrollbar-hide">
+                                                            {Array.from(new Set(['General', 'Dairy', 'Groceries', 'Personal Care', 'Beverages', 'Electronics', ...products.map(p => p.category)]))
+                                                                .filter(c => c.toLowerCase().includes(formData.category.toLowerCase()))
+                                                                .map(c => (
+                                                                    <button
+                                                                        key={c}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setFormData({ ...formData, category: c });
+                                                                            setShowCategoryDropdown(false);
+                                                                        }}
+                                                                        className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${formData.category === c ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'hover:bg-slate-50 text-slate-600'}`}
+                                                                    >
+                                                                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${formData.category === c ? 'bg-white/20' : 'bg-slate-100'}`}>
+                                                                            <Tag className={`w-3 h-3 ${formData.category === c ? 'text-white' : 'text-slate-400'}`} />
+                                                                        </div>
+                                                                        {c}
+                                                                    </button>
+                                                                ))
+                                                            }
+                                                            {Array.from(new Set(['General', 'Dairy', 'Groceries', 'Personal Care', 'Beverages', 'Electronics', ...products.map(p => p.category)]))
+                                                                .filter(c => c.toLowerCase().includes(formData.category.toLowerCase())).length === 0 && (
+                                                                    <div className="p-3 text-center">
+                                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">New Category recognized</p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setShowCategoryDropdown(false)}
+                                                                            className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-100 transition-all border border-emerald-100"
+                                                                        >
+                                                                            <Plus className="w-3 h-3" />
+                                                                            <span>Create "{formData.category}"</span>
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="relative">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unit</label>
+                                                <div className="relative mt-1.5">
+                                                    <input
+                                                        type="text"
+                                                        value={formData.unit}
+                                                        onFocus={() => setShowUnitDropdown(true)}
+                                                        onChange={(e) => {
+                                                            setFormData({ ...formData, unit: e.target.value });
+                                                            setShowUnitDropdown(true);
+                                                        }}
+                                                        className="w-full px-5 py-3.5 bg-white border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-bold text-slate-700 shadow-sm"
+                                                        placeholder="Search Unit"
+                                                    />
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                        <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${showUnitDropdown ? 'rotate-180' : ''}`} />
+                                                    </div>
+                                                </div>
+
+                                                {showUnitDropdown && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-[60]" onClick={() => setShowUnitDropdown(false)}></div>
+                                                        <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-100 shadow-2xl z-[70] max-h-48 overflow-y-auto p-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-200 scrollbar-hide">
+                                                            {[
+                                                                { name: 'Pieces', icon: Tag },
+                                                                { name: 'Kg', icon: Scale },
+                                                                { name: 'Litre', icon: Droplet },
+                                                                { name: 'Box', icon: Boxes },
+                                                                { name: 'Pack', icon: Box },
+                                                                { name: 'Gram', icon: Scale },
+                                                                { name: 'Ml', icon: Droplet }
+                                                            ]
+                                                                .filter(u => u.name.toLowerCase().includes(formData.unit.toLowerCase()))
+                                                                .map(u => (
+                                                                    <button
+                                                                        key={u.name}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setFormData({ ...formData, unit: u.name });
+                                                                            setShowUnitDropdown(false);
+                                                                        }}
+                                                                        className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 ${formData.unit === u.name ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'hover:bg-slate-50 text-slate-600'}`}
+                                                                    >
+                                                                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${formData.unit === u.name ? 'bg-white/20' : 'bg-slate-100'}`}>
+                                                                            <u.icon className={`w-3 h-3 ${formData.unit === u.name ? 'text-white' : 'text-slate-400'}`} />
+                                                                        </div>
+                                                                        {u.name}
+                                                                    </button>
+                                                                ))
+                                                            }
+                                                            {![
+                                                                { name: 'Pieces', icon: Tag },
+                                                                { name: 'Kg', icon: Scale },
+                                                                { name: 'Litre', icon: Droplet },
+                                                                { name: 'Box', icon: Boxes },
+                                                                { name: 'Pack', icon: Box },
+                                                                { name: 'Gram', icon: Scale },
+                                                                { name: 'Ml', icon: Droplet }
+                                                            ].filter(u => u.name.toLowerCase().includes(formData.unit.toLowerCase())).length && formData.unit && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setShowUnitDropdown(false)}
+                                                                        className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-600 flex items-center gap-3"
+                                                                    >
+                                                                        <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center">
+                                                                            <Plus className="w-3 h-3" />
+                                                                        </div>
+                                                                        Add "{formData.unit}"
+                                                                    </button>
+                                                                )}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Item Code / SKU</label>
+                                                <input
+                                                    value={formData.sku}
+                                                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-white border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-600 shadow-sm"
+                                                    placeholder="Auto-generated"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">HSN Code</label>
+                                                <input
+                                                    value={formData.hsnCode}
+                                                    onChange={(e) => setFormData({ ...formData, hsnCode: e.target.value })}
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-white border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-600 shadow-sm"
+                                                    placeholder="Taxation Code"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
+                                </div>
+                                {/* SECTION 2: PRICING & TAX LOGIC */}
+                                <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="bg-emerald-100 p-1.5 rounded-lg">
+                                                <Calculator className="w-3 h-3 text-emerald-600" />
+                                            </div>
+                                            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Pricing & Profit</h3>
+                                        </div>
+                                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+                                            {['Inclusive', 'Exclusive'].map((t) => (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, taxType: t as any })}
+                                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${formData.taxType === t ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
+                                                >
+                                                    Tax {t}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Left Cost Card */}
+                                        <div className="space-y-4">
+                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 ml-1">
+                                                <TrendingDown className="w-2.5 h-2.5 text-emerald-500" /> Cost Basis
+                                            </p>
+                                            <div className="relative">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Purchase Price (₹)</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.purchasePrice}
+                                                    onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                                                    className="w-full mt-1.5 px-5 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-black text-slate-700 text-xl"
+                                                    placeholder="0.00"
+                                                />
+                                                <p className="text-[10px] text-slate-400 mt-2 ml-1">Base cost per unit paid to vendor</p>
+                                            </div>
+                                            <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 flex justify-between items-center">
+                                                <div>
+                                                    <p className="text-[9px] font-black text-emerald-600/50 uppercase">Net Profit %</p>
+                                                    <p className="text-xl font-black text-emerald-700">
+                                                        {(() => {
+                                                            const cost = parseFloat(formData.purchasePrice) || 0;
+                                                            const price = parseFloat(formData.price) || 0;
+                                                            const gst = parseFloat(formData.gstRate) || 0;
+                                                            const revenue = formData.taxType === 'Inclusive' ? price / (1 + gst / 100) : price;
+                                                            const profit = revenue - cost;
+                                                            return cost > 0 ? ((profit / cost) * 100).toFixed(1) : '0.0';
+                                                        })()}%
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[9px] font-black text-emerald-600/50 uppercase">Net Earnings / Unit</p>
+                                                    <p className="text-xl font-black text-emerald-700">
+                                                        ₹{(() => {
+                                                            const cost = parseFloat(formData.purchasePrice) || 0;
+                                                            const price = parseFloat(formData.price) || 0;
+                                                            const gst = parseFloat(formData.gstRate) || 0;
+                                                            const revenue = formData.taxType === 'Inclusive' ? price / (1 + gst / 100) : price;
+                                                            return Math.max(0, revenue - cost).toFixed(2);
+                                                        })()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right Sales Card */}
+                                        <div className="space-y-4">
+                                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2 ml-1">
+                                                <TrendingUp className="w-2.5 h-2.5 text-blue-500" /> Selling Context
+                                            </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">MRP (Max Price)</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            value={formData.mrp}
+                                                            onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
+                                                            className="w-full mt-1.5 px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-blue-500 transition-all font-bold text-slate-600 shadow-sm"
+                                                            placeholder="0.00"
+                                                        />
+                                                        <Tag className="absolute right-5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-300" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tax Rate (GST %)</label>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={formData.gstRate}
+                                                            onChange={(e) => setFormData({ ...formData, gstRate: e.target.value })}
+                                                            className="w-full mt-1.5 px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-blue-500 transition-all font-black text-slate-700 appearance-none shadow-sm"
+                                                        >
+                                                            {['0', '5', '12', '18', '28'].map(r => <option key={r} value={r}>{r}% GST Rate</option>)}
+                                                        </select>
+                                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                            <ShieldCheck className="w-3 h-3 text-slate-300" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                                <div>
+                                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${formData.taxType === 'Inclusive' ? 'text-blue-600' : 'text-slate-400'}`}>
+                                                        Sale Price ({formData.taxType === 'Inclusive' ? 'Incl.' : 'Excl.'})
+                                                    </label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            value={formData.price}
+                                                            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                                            className="w-full mt-1.5 px-4 py-4 border-2 border-blue-500/20 rounded-2xl outline-none focus:ring-8 focus:ring-blue-500/10 focus:border-blue-500 bg-blue-50/10 transition-all font-black text-blue-700 text-xl shadow-lg shadow-blue-500/5 placeholder:text-blue-200"
+                                                            placeholder="0.00"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-black text-orange-400 uppercase tracking-widest ml-1 animate-pulse">Discount (%)</label>
+                                                    <div className="relative group">
+                                                        <input
+                                                            type="number"
+                                                            value={(() => {
+                                                                const mrp = parseFloat(formData.mrp) || 0;
+                                                                const price = parseFloat(formData.price) || 0;
+                                                                return mrp > 0 ? (((mrp - price) / mrp) * 100).toFixed(1) : '';
+                                                            })()}
+                                                            onChange={(e) => {
+                                                                const pct = parseFloat(e.target.value);
+                                                                const mrp = parseFloat(formData.mrp);
+                                                                if (!isNaN(pct) && !isNaN(mrp)) {
+                                                                    const newPrice = mrp * (1 - pct / 100);
+                                                                    setFormData({ ...formData, price: newPrice.toFixed(2) });
+                                                                }
+                                                            }}
+                                                            className="w-full mt-1.5 px-5 py-4 bg-orange-50/30 border-2 border-orange-100/50 rounded-2xl outline-none focus:border-orange-500 focus:ring-8 focus:ring-orange-500/5 transition-all font-black text-orange-700 text-xl shadow-sm placeholder:text-orange-200"
+                                                            placeholder="0%"
+                                                        />
+                                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[9px] font-black text-orange-300 uppercase opacity-60">Off MRP</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-100/50 flex justify-between items-center mt-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                                        <TrendingDown className="w-3 h-3 text-blue-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-blue-600/50 uppercase leading-none">Net Customer Saving</p>
+                                                        <p className="text-sm font-black text-blue-700 mt-1">
+                                                            ₹{Math.max(0, (parseFloat(formData.mrp) || 0) - (parseFloat(formData.price) || 0)).toLocaleString()} Saved Per Unit
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Dynamic Analysis Footer */}
+                                    <div className="pt-4 border-t border-slate-50 flex flex-wrap gap-4 items-center justify-between">
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                                    <ShieldCheck className="w-3 h-3 text-orange-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] font-black text-slate-300 uppercase leading-none mb-1">Tax Impact</p>
+                                                    <p className="text-[11px] font-black text-slate-700 leading-none">
+                                                        {formData.gstRate}% {formData.taxType} (₹{(() => {
+                                                            const price = parseFloat(formData.price) || 0;
+                                                            const gst = parseFloat(formData.gstRate) || 0;
+                                                            return formData.taxType === 'Inclusive' ? (price - (price / (1 + gst / 100))).toFixed(2) : ((price * gst) / 100).toFixed(2);
+                                                        })()} Tax)
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="w-px h-8 bg-slate-100"></div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                    <DollarSign className="w-3 h-3 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] font-black text-slate-300 uppercase leading-none mb-1">True Sales Margin</p>
+                                                    <p className="text-[11px] font-black text-slate-700 leading-none">
+                                                        {(() => {
+                                                            const cost = parseFloat(formData.purchasePrice) || 0;
+                                                            const price = parseFloat(formData.price) || 0;
+                                                            const gst = parseFloat(formData.gstRate) || 0;
+                                                            const revenue = formData.taxType === 'Inclusive' ? price / (1 + gst / 100) : price;
+                                                            return revenue > 0 ? (((revenue - cost) / revenue) * 100).toFixed(1) : '0.0';
+                                                        })()}% Net
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-2 rounded-full border border-slate-100">
+                                            Manual Entry Mode Active
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* SECTION 3: STOCK & LOGISTICS */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="bg-orange-100 p-1.5 rounded-lg">
+                                                <Boxes className="w-3 h-3 text-orange-600" />
+                                            </div>
+                                            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Stock Setup</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Opening Stock</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.stock}
+                                                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-black text-slate-700"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Low Stock Alert</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.minStock}
+                                                    onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-orange-500 transition-all font-bold text-slate-600"
+                                                    placeholder="10"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="bg-purple-100 p-1.5 rounded-lg">
+                                                <Shield className="w-3 h-3 text-purple-600" />
+                                            </div>
+                                            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Governance</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={formData.expiryDate}
+                                                    onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-blue-500 transition-all font-bold text-slate-600"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="bg-pink-100 p-1.5 rounded-lg">
+                                                <RefreshCw className="w-3 h-3 text-pink-600" />
+                                            </div>
+                                            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Return Policy</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="flex flex-col gap-2 pt-1.5">
+                                                {['Returnable', 'Not Returnable'].map((r) => (
+                                                    <button
+                                                        key={r}
+                                                        type="button"
+                                                        onClick={() => setFormData({ ...formData, returns: r as any })}
+                                                        className={`py-4 px-4 rounded-2xl text-[10px] font-black uppercase border-2 transition-all flex items-center justify-between ${formData.returns === r ? 'border-pink-500 bg-pink-50/30 text-pink-600 shadow-sm' : 'border-slate-50 bg-slate-50/50 text-slate-400 opacity-60'}`}
+                                                    >
+                                                        {r}
+                                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.returns === r ? 'border-pink-500 bg-pink-500' : 'border-slate-200'}`}>
+                                                            {formData.returns === r && <Check className="w-2.5 h-2.5 text-white" />}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 4: PRODUCT MEDIA */}
+                                <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-6 border-b border-slate-50 pb-4">
+                                        <div className="bg-pink-100 p-1.5 rounded-lg">
+                                            <Camera className="w-3 h-3 text-pink-600" />
+                                        </div>
+                                        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-700">Product Media</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                                        <div className="space-y-6">
+                                            <div className="relative group">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Option 1: Paste Photo URL</label>
+                                                <div className="mt-1.5 relative">
+                                                    <input
+                                                        type="text"
+                                                        value={formData.image}
+                                                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                                                        className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:bg-white focus:border-pink-500 rounded-2xl outline-none transition-all font-medium text-slate-500 pr-12 shadow-sm"
+                                                        placeholder="https://images.unsplash.com/..."
+                                                    />
+                                                    <ImageIcon className="absolute right-5 top-4 w-3.5 h-3.5 text-slate-300" />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-px flex-1 bg-slate-50"></div>
+                                                <span className="text-[8px] font-black text-slate-300 uppercase italic">OR</span>
+                                                <div className="h-px flex-1 bg-slate-50"></div>
+                                            </div>
+
+                                            <div className="relative">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Option 2: Local Upload</label>
+                                                <input
+                                                    type="file"
+                                                    id="product-photo-upload"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleImageUpload}
+                                                />
+                                                <label
+                                                    htmlFor="product-photo-upload"
+                                                    className="mt-1.5 w-full flex items-center justify-center gap-3 px-5 py-4 bg-white border-2 border-slate-100 border-dashed rounded-2xl cursor-pointer hover:border-pink-400 hover:bg-pink-50/20 transition-all group"
+                                                >
+                                                    <Upload className="w-3.5 h-3.5 text-slate-400 group-hover:text-pink-500" />
+                                                    <span className="text-xs font-black text-slate-500 group-hover:text-pink-600 uppercase tracking-widest">Browse Folders</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div className="aspect-square md:aspect-auto md:h-52 border-2 border-dashed border-slate-100 rounded-[32px] flex items-center justify-center bg-slate-50/30 shadow-inner overflow-hidden relative group">
+                                            {formData.image ? (
+                                                <>
+                                                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <button onClick={() => setFormData({ ...formData, image: '' })} className="bg-white p-3 rounded-2xl text-red-500 shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all active:scale-95"><TrashIcon className="w-3.5 h-3.5" /></button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center px-6">
+                                                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                                        <Camera className="w-3.5 h-3.5 text-slate-200" />
+                                                    </div>
+                                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-tight">Visual Preview Area</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex justify-end space-x-3 mt-6">
-                            <button onClick={closeModal} className="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-sm">Cancel</button>
-                            <button onClick={handleSave} disabled={!formData.name} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-sm disabled:opacity-50">{editingId ? 'Update' : 'Add Product'}</button>
+
+                            {/* Footer: Final Actions */}
+                            <div className="px-8 py-6 bg-white border-t border-slate-100 flex items-center justify-end gap-6 sticky bottom-0 z-10">
+                                <button
+                                    onClick={closeModal}
+                                    className="px-8 py-4 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-red-500 transition-all flex items-center gap-2"
+                                >
+                                    <X className="w-3 h-3" /> Cancel Process
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={!formData.name}
+                                    className="relative overflow-hidden px-10 py-4 bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-widest rounded-[20px] shadow-2xl shadow-slate-200 transition-all active:scale-95 disabled:opacity-30 disabled:grayscale group"
+                                >
+                                    <span className="relative z-10 flex items-center gap-3">
+                                        {editingId ? <RefreshCw className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                        {editingId ? 'Confirm Changes' : 'Initialize Item'}
+                                    </span>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
 
             {/* Image Preview Modal */}
             {previewImage && (
-                <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
-                    <div className="relative max-w-3xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
-                        <button
-                            onClick={() => setPreviewImage(null)}
-                            className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-slate-500 hover:text-red-500 transition-colors z-10"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <img src={previewImage} alt="Preview" className="w-full h-full object-contain rounded" />
+                <Portal>
+                    <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
+                        <div className="relative max-w-3xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={() => setPreviewImage(null)}
+                                className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-slate-500 hover:text-red-500 transition-colors z-10"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                            <img src={previewImage} alt="Preview" className="w-full h-full object-contain rounded" />
+                        </div>
                     </div>
-                </div>
+                </Portal>
             )}
             {/* Import Items Modal */}
             {showImportModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative">
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setShowImportModal(false)}
-                            className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all z-10"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
+                <Portal>
 
-                        <div className="p-8 lg:p-12">
-                            <div className="text-center mb-10">
-                                <h2 className="text-3xl font-black text-slate-900 mb-3">Import Items</h2>
-                                <p className="text-slate-500 font-bold max-w-lg mx-auto">
-                                    Add products to your inventory using Excel upload, barcode scanning, or PDF import.
-                                </p>
-                            </div>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[32px] w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative">
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowImportModal(false)}
+                                className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all z-10"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                                {/* Excel Upload Card */}
-                                <div className="bg-white border-2 border-slate-100 rounded p-8 hover:border-green-500 transition-all group">
-                                    <div className="flex flex-col items-center text-center">
-                                        <div className="w-16 h-16 bg-green-50 rounded flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                            <FileSpreadsheet className="w-8 h-8 text-green-600" />
-                                        </div>
-                                        <h3 className="text-xl font-black text-slate-900 mb-2">Upload from Excel</h3>
-                                        <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">Bulk import items using .xlsx or .csv files.</p>
+                            <div className="p-8 lg:p-12">
+                                <div className="text-center mb-10">
+                                    <h2 className="text-3xl font-black text-slate-900 mb-3">Import Items</h2>
+                                    <p className="text-slate-500 font-bold max-w-lg mx-auto">
+                                        Add products to your inventory using Excel upload, barcode scanning, or PDF import.
+                                    </p>
+                                </div>
 
-                                        <div className="w-full border-2 border-dashed border-slate-200 rounded py-12 px-6 flex flex-col items-center justify-center mb-6 hover:bg-slate-50 cursor-pointer transition-colors group/drop">
-                                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover/drop:bg-blue-100 group-hover/drop:text-blue-600 transition-colors">
-                                                <Upload className="w-5 h-5 text-slate-400" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                                    {/* Excel Upload Card */}
+                                    <div className="bg-white border-2 border-slate-100 rounded p-8 hover:border-green-500 transition-all group">
+                                        <div className="flex flex-col items-center text-center">
+                                            <div className="w-16 h-16 bg-green-50 rounded flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                                <FileSpreadsheet className="w-4 h-4 text-green-600" />
                                             </div>
-                                            <p className="text-sm font-black text-slate-900">Drag & drop your file here</p>
-                                            <p className="text-xs font-bold text-slate-400 mt-1">or click to browse</p>
+                                            <h3 className="text-xl font-black text-slate-900 mb-2">Upload from Excel</h3>
+                                            <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">Bulk import items using .xlsx or .csv files.</p>
+
+                                            <div className="w-full border-2 border-dashed border-slate-200 rounded py-12 px-6 flex flex-col items-center justify-center mb-6 hover:bg-slate-50 cursor-pointer transition-colors group/drop">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover/drop:bg-blue-100 group-hover/drop:text-blue-600 transition-colors">
+                                                    <Upload className="w-3.5 h-3.5 text-slate-400" />
+                                                </div>
+                                                <p className="text-sm font-black text-slate-900">Drag & drop your file here</p>
+                                                <p className="text-xs font-bold text-slate-400 mt-1">or click to browse</p>
+                                            </div>
+
+                                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black shadow-lg shadow-blue-100 transition-all mb-4">
+                                                Upload File
+                                            </button>
+
+                                            <button className="flex items-center space-x-2 text-blue-600 font-black text-sm hover:underline">
+                                                <Download className="w-3 h-3" />
+                                                <span>Download Excel Template</span>
+                                            </button>
+                                            <p className="text-[10px] font-bold text-slate-400 mt-6 uppercase tracking-widest leading-loose">Supported formats: .xlsx, .csv | Max file size: 5MB</p>
                                         </div>
+                                    </div>
 
-                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black shadow-lg shadow-blue-100 transition-all mb-4">
-                                            Upload File
-                                        </button>
+                                    {/* PDF Upload Card */}
+                                    <div className="bg-white border-2 border-slate-100 rounded p-8 hover:border-blue-500 transition-all group">
+                                        <div className="flex flex-col items-center text-center">
+                                            <div className="w-16 h-16 bg-red-50 rounded flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                                <FileText className="w-4 h-4 text-red-600" />
+                                            </div>
+                                            <h3 className="text-xl font-black text-slate-900 mb-2">Import from PDF</h3>
+                                            <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">Upload product lists in PDF format and extract items automatically.</p>
 
-                                        <button className="flex items-center space-x-2 text-blue-600 font-black text-sm hover:underline">
-                                            <Download className="w-4 h-4" />
-                                            <span>Download Excel Template</span>
-                                        </button>
-                                        <p className="text-[10px] font-bold text-slate-400 mt-6 uppercase tracking-widest leading-loose">Supported formats: .xlsx, .csv | Max file size: 5MB</p>
+                                            <div className="w-full border-2 border-dashed border-slate-200 rounded py-12 px-6 flex flex-col items-center justify-center mb-6 hover:bg-slate-50 cursor-pointer transition-colors group/drop">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover/drop:bg-blue-100 group-hover/drop:text-blue-600 transition-colors">
+                                                    <Upload className="w-3.5 h-3.5 text-slate-400" />
+                                                </div>
+                                                <p className="text-sm font-black text-slate-900">Drag & drop PDF here</p>
+                                                <p className="text-xs font-bold text-slate-400 mt-1">or click to browse</p>
+                                            </div>
+
+                                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black shadow-lg shadow-blue-100 transition-all mb-4">
+                                                Upload PDF
+                                            </button>
+                                            <div className="mt-8 invisible md:visible">.</div>
+                                            <p className="text-[10px] font-bold text-slate-400 mt-6 uppercase tracking-widest leading-loose">Supported: .pdf | Max: 10MB</p>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* PDF Upload Card */}
-                                <div className="bg-white border-2 border-slate-100 rounded p-8 hover:border-blue-500 transition-all group">
-                                    <div className="flex flex-col items-center text-center">
-                                        <div className="w-16 h-16 bg-red-50 rounded flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                            <FileText className="w-8 h-8 text-red-600" />
+                                <div className="flex items-center justify-center pt-8 border-t border-slate-100">
+                                    <label className="flex items-center space-x-3 cursor-pointer group">
+                                        <div
+                                            onClick={() => setReviewBeforeImport(!reviewBeforeImport)}
+                                            className={`w-5 h-5 rounded-sm flex items-center justify-center border-2 transition-all ${reviewBeforeImport ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'border-slate-300'}`}
+                                        >
+                                            {reviewBeforeImport && <Check className="w-3 h-3" />}
                                         </div>
-                                        <h3 className="text-xl font-black text-slate-900 mb-2">Import from PDF</h3>
-                                        <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">Upload product lists in PDF format and extract items automatically.</p>
-
-                                        <div className="w-full border-2 border-dashed border-slate-200 rounded py-12 px-6 flex flex-col items-center justify-center mb-6 hover:bg-slate-50 cursor-pointer transition-colors group/drop">
-                                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover/drop:bg-blue-100 group-hover/drop:text-blue-600 transition-colors">
-                                                <Upload className="w-5 h-5 text-slate-400" />
-                                            </div>
-                                            <p className="text-sm font-black text-slate-900">Drag & drop PDF here</p>
-                                            <p className="text-xs font-bold text-slate-400 mt-1">or click to browse</p>
-                                        </div>
-
-                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black shadow-lg shadow-blue-100 transition-all mb-4">
-                                            Upload PDF
-                                        </button>
-                                        <div className="mt-8 invisible md:visible">.</div>
-                                        <p className="text-[10px] font-bold text-slate-400 mt-6 uppercase tracking-widest leading-loose">Supported: .pdf | Max: 10MB</p>
-                                    </div>
+                                        <span className="text-sm font-black text-slate-700 group-hover:text-blue-600 transition-colors">Review items before final import</span>
+                                    </label>
                                 </div>
-                            </div>
-
-                            <div className="flex items-center justify-center pt-8 border-t border-slate-100">
-                                <label className="flex items-center space-x-3 cursor-pointer group">
-                                    <div
-                                        onClick={() => setReviewBeforeImport(!reviewBeforeImport)}
-                                        className={`w-6 h-6 rounded-sm flex items-center justify-center border-2 transition-all ${reviewBeforeImport ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'border-slate-300'}`}
-                                    >
-                                        {reviewBeforeImport && <Check className="w-4 h-4" />}
-                                    </div>
-                                    <span className="text-sm font-black text-slate-700 group-hover:text-blue-600 transition-colors">Review items before final import</span>
-                                </label>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
         </div>
     );

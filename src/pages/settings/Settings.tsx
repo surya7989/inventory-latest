@@ -62,11 +62,11 @@ const Settings: React.FC = () => {
 
                 <div className="hidden lg:block mt-6 space-y-2 border-t border-slate-100 pt-4">
                     <button className="w-full flex items-center space-x-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-sm transition-all">
-                        <LogOut className="w-4 h-4" />
+                        <LogOut className="w-3.5 h-3.5" />
                         <span className="text-sm font-bold">Sign Out</span>
                     </button>
                     <button className="w-full flex items-center space-x-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-sm transition-all">
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                         <span className="text-sm font-bold">Delete Account</span>
                     </button>
                 </div>

@@ -4,14 +4,14 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import confetti from 'canvas-confetti';
 
 const ProfileSettings: React.FC = () => {
-    const [profile, setProfile] = useLocalStorage('nx_admin_profile', {
-        name: 'John Anderson',
-        email: 'admin@nexarats.com',
-        phone: '+91 98765 43210',
-        businessName: 'NexaratsINV Store',
-        address: '123 Business Street, Mumbai',
+    const [profile, setProfile] = useLocalStorage('inv_admin_profile', {
+        name: 'Admin',
+        email: '',
+        phone: '',
+        businessName: 'My Store',
+        address: '',
         role: 'Administrator',
-        avatar: 'https://picsum.photos/id/64/80/80'
+        avatar: 'https://ui-avatars.com/api/?name=Admin&background=random'
     });
     const [saved, setSaved] = useState(false);
 
@@ -45,7 +45,7 @@ const ProfileSettings: React.FC = () => {
                     onClick={handleSave}
                     className={`flex items-center space-x-2 px-4 py-2.5 rounded-sm font-bold text-sm transition-all ${saved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
-                    {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-4 h-4" />}
+                    {saved ? <CheckCircle2 className="w-3.5 h-3.5 animate-in zoom-in" /> : <Save className="w-3.5 h-3.5" />}
                     <span>{saved ? 'Saved!' : 'Save'}</span>
                 </button>
             </div>
@@ -70,7 +70,7 @@ const ProfileSettings: React.FC = () => {
                         htmlFor="avatar-upload"
                         className="flex items-center space-x-2 bg-white border border-slate-200 px-4 py-2.5 rounded-sm text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                     >
-                        <Upload className="w-4 h-4" /><span>Upload Photo</span>
+                        <Upload className="w-3.5 h-3.5" /><span>Upload Photo</span>
                     </label>
                 </div>
             </div>

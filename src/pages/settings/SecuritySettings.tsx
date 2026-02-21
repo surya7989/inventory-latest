@@ -43,14 +43,14 @@ const SecuritySettings: React.FC = () => {
         <div className="space-y-6">
             <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-red-500 rounded-sm flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-white" />
+                    <Shield className="w-3.5 h-3.5 text-white" />
                 </div>
                 <h2 className="text-xl lg:text-2xl font-black text-slate-900">Security & Privacy</h2>
             </div>
 
             {/* Change Password */}
             <div className="p-4 lg:p-6 bg-slate-50 rounded space-y-4">
-                <h3 className="text-sm font-black text-slate-600 uppercase tracking-widest flex items-center space-x-2"><Key className="w-4 h-4" /><span>Change Password</span></h3>
+                <h3 className="text-sm font-black text-slate-600 uppercase tracking-widest flex items-center space-x-2"><Key className="w-3.5 h-3.5" /><span>Change Password</span></h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="relative">
                         <label className="text-xs font-bold text-slate-400">Current Password</label>
@@ -73,7 +73,7 @@ const SecuritySettings: React.FC = () => {
                         onClick={handleUpdatePassword}
                         className={`flex items-center space-x-2 px-4 py-2 rounded-sm font-bold text-sm transition-all ${saved ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
                     >
-                        {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-4 h-4" />}
+                        {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-3.5 h-3.5" />}
                         <span>{saved ? 'Updated!' : 'Update'}</span>
                     </button>
                 </div>
@@ -91,7 +91,7 @@ const SecuritySettings: React.FC = () => {
                 ].map(item => (
                     <div key={item.key} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-sm transition-all">
                         <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-slate-100 rounded-sm flex items-center justify-center"><item.icon className="w-5 h-5 text-slate-500" /></div>
+                            <div className="w-10 h-10 bg-slate-100 rounded-sm flex items-center justify-center"><item.icon className="w-3.5 h-3.5 text-slate-500" /></div>
                             <div><p className="font-bold text-sm text-slate-900">{item.label}</p><p className="text-xs text-slate-400">{item.desc}</p></div>
                         </div>
                         <ToggleSwitch enabled={settings[item.key]} onChange={() => setSettings(prev => ({ ...prev, [item.key]: !prev[item.key] }))} />
@@ -116,7 +116,7 @@ const SecuritySettings: React.FC = () => {
                 {sessions.map((s, idx) => (
                     <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-sm">
                         <div className="flex items-center space-x-3">
-                            <Monitor className="w-5 h-5 text-slate-400" />
+                            <Monitor className="w-3.5 h-3.5 text-slate-400" />
                             <div>
                                 <p className="font-bold text-sm text-slate-900">{s.device}{s.current && <span className="ml-2 text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-black">Current</span>}</p>
                                 <p className="text-xs text-slate-400">{s.location} · {s.time}</p>

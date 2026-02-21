@@ -26,7 +26,7 @@ const Reports: React.FC = () => {
                     >
                         <div className={`w-10 h-10 rounded-sm flex items-center justify-center mb-3 ${selectedReport === r.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
                             }`}>
-                            <r.icon className="w-5 h-5" />
+                            <r.icon className="w-3.5 h-3.5" />
                         </div>
                         <h4 className="font-black text-sm text-slate-900">{r.title}</h4>
                         <p className="text-[10px] text-slate-400 font-bold mt-1">{r.description}</p>
@@ -38,7 +38,7 @@ const Reports: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded border border-slate-100 shadow-sm">
                 <div className="flex items-center space-x-3 flex-wrap gap-2">
                     <div className="flex items-center space-x-2 bg-slate-50 px-4 py-2.5 rounded-sm">
-                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
                         <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="bg-transparent text-sm font-bold outline-none">
                             <option value="today">Today</option>
                             <option value="this_week">This Week</option>
@@ -48,14 +48,14 @@ const Reports: React.FC = () => {
                             <option value="custom">Custom Range</option>
                         </select>
                     </div>
-                    <button className="p-2.5 bg-slate-50 rounded-sm text-slate-400"><Filter className="w-4 h-4" /></button>
+                    <button className="p-2.5 bg-slate-50 rounded-sm text-slate-400"><Filter className="w-3.5 h-3.5" /></button>
                 </div>
                 <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
                     <button className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2.5 rounded-sm font-bold text-sm">
-                        <Download className="w-4 h-4" /><span className="hidden sm:inline">Export PDF</span>
+                        <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export PDF</span>
                     </button>
                     <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2.5 rounded-sm font-bold text-sm">
-                        <Download className="w-4 h-4" /><span className="hidden sm:inline">Export Excel</span>
+                        <Download className="w-3.5 h-3.5" /><span className="hidden sm:inline">Export Excel</span>
                     </button>
                 </div>
             </div>
@@ -133,7 +133,7 @@ const Reports: React.FC = () => {
                 {selectedReport !== 'sales' && selectedReport !== 'inventory' && (
                     <div className="p-8 lg:p-12 text-center">
                         <div className="w-16 h-16 bg-slate-100 rounded flex items-center justify-center mx-auto mb-4">
-                            <FileText className="w-8 h-8 text-slate-300" />
+                            <FileText className="w-4 h-4 text-slate-300" />
                         </div>
                         <p className="text-sm font-bold text-slate-400">Click Export to generate the full {reports.find(r => r.id === selectedReport)?.title}</p>
                     </div>

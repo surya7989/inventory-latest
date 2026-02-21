@@ -33,7 +33,7 @@ const NotificationSettings: React.FC = () => {
                 <h2 className="text-xl lg:text-2xl font-black text-slate-900">Notification Settings</h2>
                 {justSaved && (
                     <div className="flex items-center space-x-2 text-green-600 font-bold text-sm animate-in fade-in slide-in-from-right-4">
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Changes Saved</span>
                     </div>
                 )}
@@ -49,7 +49,7 @@ const NotificationSettings: React.FC = () => {
                 ].map(item => (
                     <div key={item.key} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-sm transition-all">
                         <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-slate-100 rounded-sm flex items-center justify-center"><item.icon className="w-5 h-5 text-slate-500" /></div>
+                            <div className="w-10 h-10 bg-slate-100 rounded-sm flex items-center justify-center"><item.icon className="w-3.5 h-3.5 text-slate-500" /></div>
                             <div><p className="font-bold text-sm text-slate-900">{item.label}</p><p className="text-xs text-slate-400">{item.desc}</p></div>
                         </div>
                         <ToggleSwitch enabled={settings[item.key]} onChange={() => toggle(item.key)} />

@@ -34,7 +34,7 @@ const GSTSettings: React.FC = () => {
                     onClick={handleSave}
                     className={`flex items-center space-x-2 px-4 py-2.5 rounded-sm font-bold text-sm transition-all ${saved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                 >
-                    {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-4 h-4" />}
+                    {saved ? <CheckCircle2 className="w-3.5 h-3.5 animate-in zoom-in" /> : <Save className="w-3.5 h-3.5" />}
                     <span>{saved ? 'Saved!' : 'Save'}</span>
                 </button>
             </div>

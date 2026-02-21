@@ -33,7 +33,7 @@ const HelpSupport: React.FC = () => {
         <div className="space-y-6">
             <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-indigo-500 rounded-sm flex items-center justify-center">
-                    <HelpCircle className="w-5 h-5 text-white" />
+                    <HelpCircle className="w-3.5 h-3.5 text-white" />
                 </div>
                 <h2 className="text-xl lg:text-2xl font-black text-slate-900">Help & Support</h2>
             </div>
@@ -47,7 +47,7 @@ const HelpSupport: React.FC = () => {
                 ].map((item, idx) => (
                     <button key={idx} className="p-4 bg-slate-50 rounded text-left hover:shadow-md transition-all group">
                         <div className={`w-10 h-10 rounded-sm flex items-center justify-center mb-3 ${item.color}`}>
-                            <item.icon className="w-5 h-5" />
+                            <item.icon className="w-3.5 h-3.5" />
                         </div>
                         <p className="font-black text-sm text-slate-900">{item.label}</p>
                         <p className="text-xs text-slate-400 mt-1">{item.desc}</p>
@@ -68,7 +68,7 @@ const HelpSupport: React.FC = () => {
                             className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-50 transition-all"
                         >
                             <span className="font-bold text-sm text-slate-900 pr-4">{faq.q}</span>
-                            {openFaq === idx ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
+                            {openFaq === idx ? <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
                         </button>
                         {openFaq === idx && (
                             <div className="px-4 pb-4">
@@ -87,14 +87,14 @@ const HelpSupport: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-sm flex items-center space-x-3">
-                        <Mail className="w-5 h-5 text-slate-400" />
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
                         <div>
                             <p className="text-xs font-bold text-slate-400 uppercase">Email</p>
                             <p className="font-bold text-sm text-blue-600">support@nexarats.com</p>
                         </div>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-sm flex items-center space-x-3">
-                        <Phone className="w-5 h-5 text-slate-400" />
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
                         <div>
                             <p className="text-xs font-bold text-slate-400 uppercase">Phone</p>
                             <p className="font-bold text-sm text-blue-600">+91 1800 123 4567</p>
@@ -104,7 +104,7 @@ const HelpSupport: React.FC = () => {
 
                 <div className="p-4 lg:p-6 bg-slate-50 rounded space-y-4">
                     <div className="flex items-center space-x-2">
-                        <MessageSquare className="w-4 h-4 text-slate-400" />
+                        <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
                         <h4 className="font-black text-sm text-slate-900">Send a Message</h4>
                     </div>
                     <div>
@@ -119,7 +119,7 @@ const HelpSupport: React.FC = () => {
                         onClick={handleSendMessage}
                         className={`px-6 py-3 rounded-sm font-bold text-sm transition-all flex items-center space-x-2 ${sent ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
-                        {sent ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <MessageSquare className="w-4 h-4" />}
+                        {sent ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <MessageSquare className="w-3.5 h-3.5" />}
                         <span>{sent ? 'Message Sent!' : 'Send Message'}</span>
                     </button>
                 </div>

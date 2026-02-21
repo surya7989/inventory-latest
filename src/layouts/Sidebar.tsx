@@ -2,7 +2,7 @@ import React from 'react';
 import {
     LayoutDashboard, Receipt, Package, Users, Truck, BarChart3, Settings, ShoppingCart, LogOut, X
 } from 'lucide-react';
-import { Page } from '../types';
+import { Page, User } from '../types';
 
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -12,24 +12,33 @@ interface SidebarProps {
     onLogout: () => void;
     isOpen: boolean;
     onClose: () => void;
+    user?: User | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, isOpen, onClose }) => {
-    const [profile] = useLocalStorage('nx_admin_profile', {
-        name: 'John Anderson',
-        role: 'Administrator',
-        avatar: 'https://picsum.photos/id/64/40/40'
+
+const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, isOpen, onClose, user }) => {
+    const [profile] = useLocalStorage('inv_admin_profile', {
+        name: user?.name || 'Admin',
+        role: user?.role || 'Administrator',
+        avatar: `https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=random`
     });
 
+
     const menuItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { id: 'billing', icon: Receipt, label: 'Billing / POS' },
-        { id: 'inventory', icon: Package, label: 'Inventory' },
-        { id: 'customers', icon: Users, label: 'Customers' },
-        { id: 'vendors', icon: Truck, label: 'Vendors' },
-        { id: 'analytics', icon: BarChart3, label: 'Analytics' },
-        { id: 'settings', icon: Settings, label: 'Settings' },
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff', 'Accountant', 'Delivery Agent'] },
+        { id: 'billing', icon: Receipt, label: 'Billing / POS', roles: ['Admin', 'Manager', 'Staff'] },
+        { id: 'inventory', icon: Package, label: 'Inventory', roles: ['Admin', 'Manager', 'Staff'] },
+        { id: 'customers', icon: Users, label: 'Customers', roles: ['Admin', 'Manager', 'Accountant'] },
+        { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Admin', 'Manager'] },
+        { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Admin', 'Manager'] },
+        { id: 'settings', icon: Settings, label: 'Settings', roles: ['Admin'] },
     ];
+
+    const filteredMenuItems = menuItems.filter(item => {
+        if (!user) return true; // Default to show if no user (should not happen)
+        return item.roles.includes(user.role);
+    });
+
 
     const handlePageChange = (page: Page) => {
         onPageChange(page);
@@ -49,19 +58,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
             {/* Sidebar */}
             <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-64 h-full bg-white border-r border-slate-200 flex flex-col shrink-0
+        w-64 h-full bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
                 <div className="p-6 flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">NexaratsINV</h2>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">{user?.name || 'Nexarats'}INV</h2>
+
                     <button onClick={onClose} className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
-                        <X className="w-5 h-5" />
+                        <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
 
                 <nav className="flex-1 px-3 space-y-1">
-                    {menuItems.map((item) => (
+                    {filteredMenuItems.map((item) => (
+
                         <button
                             key={item.id}
                             onClick={() => handlePageChange(item.id as Page)}
@@ -70,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
                                 : 'text-slate-600 hover:bg-slate-50 font-medium'
                                 }`}
                         >
-                            <item.icon className="w-5 h-5" />
+                            <item.icon className="w-3.5 h-3.5" />
                             <span className="text-sm font-bold">{item.label}</span>
                         </button>
                     ))}
@@ -78,14 +89,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
 
                 <div className="p-4 space-y-4">
                     {/* Online Store Promo Card */}
-                    <div className="bg-[#2563EB] rounded-2xl p-4 text-white relative overflow-hidden group cursor-pointer">
+                    <div
+                        onClick={() => handlePageChange('online-store')}
+                        className={`rounded-2xl p-4 relative overflow-hidden group cursor-pointer transition-all duration-300 ${activePage === 'online-store' ? 'bg-[#EF4444] shadow-lg shadow-red-100' : 'bg-[#2563EB] shadow-lg shadow-blue-100'}`}
+                    >
                         <div className="relative z-10 flex items-center space-x-3">
                             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                                <ShoppingCart className="w-6 h-6" />
+                                <ShoppingCart className="w-3.5 h-3.5 text-white" />
                             </div>
-                            <span className="font-black text-sm">Online Store</span>
+                            <span className="font-black text-sm text-white">Online Store</span>
                         </div>
-                        <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+                        <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
                     </div>
 
                     {/* User Profile & Logout Button */}
@@ -104,7 +118,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
                             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shrink-0"
                             title="Logout"
                         >
-                            <LogOut className="w-5 h-5" />
+                            <LogOut className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 </div>

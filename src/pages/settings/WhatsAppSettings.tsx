@@ -40,7 +40,7 @@ const WhatsAppSettings: React.FC = () => {
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-green-500 rounded-sm flex items-center justify-center">
-                        <MessageSquare className="w-5 h-5 text-white" />
+                        <MessageSquare className="w-3.5 h-3.5 text-white" />
                     </div>
                     <h2 className="text-xl lg:text-2xl font-black text-slate-900">WhatsApp Settings</h2>
                 </div>
@@ -48,7 +48,7 @@ const WhatsAppSettings: React.FC = () => {
                     onClick={handleSave}
                     className={`flex items-center space-x-2 px-4 py-2.5 rounded-sm font-bold text-sm transition-all ${saved ? 'bg-green-600' : 'bg-green-500 hover:bg-green-600'} text-white shadow-lg shadow-green-100`}
                 >
-                    {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-4 h-4" />}
+                    {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-3.5 h-3.5" />}
                     <span>{saved ? 'Saved!' : 'Save'}</span>
                 </button>
             </div>
@@ -62,7 +62,7 @@ const WhatsAppSettings: React.FC = () => {
                 <div>
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest">WhatsApp Business Number</label>
                     <div className="relative mt-2">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         <input value={config.apiNumber} onChange={(e) => setConfig({ ...config, apiNumber: e.target.value })} className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-sm outline-none focus:ring-2 focus:ring-green-500" />
                     </div>
                 </div>

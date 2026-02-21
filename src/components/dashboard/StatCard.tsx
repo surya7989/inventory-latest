@@ -15,7 +15,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, isPositive, i
     <div className="bg-white p-5 rounded border border-slate-100 shadow-sm transition-transform hover:scale-[1.02]">
         <div className="flex items-center justify-between mb-3">
             <div className={`w-10 h-10 rounded-sm flex items-center justify-center ${iconColor}`}>
-                <Icon className="w-5 h-5 text-white" />
+                <Icon className="w-4 h-4 text-white" />
             </div>
             <div className={`flex items-center space-x-1 text-xs font-bold ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
                 <span>{isPositive ? '+' : ''}{change}%</span>

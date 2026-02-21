@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutGrid, Package, Eye, EyeOff } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 
 interface LoginProps {
     onLogin: () => void;
@@ -100,331 +100,131 @@ const WarehouseIllustration = () => (
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [loading, setLoading] = useState(false);
-    const [view, setView] = useState<'login' | 'signup'>('login');
     const [rememberMe, setRememberMe] = useState(false);
 
-    // Signup state
-    const [signupName, setSignupName] = useState('');
-    const [signupEmail, setSignupEmail] = useState('');
-    const [signupPassword, setSignupPassword] = useState('');
-    const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
-    const [showSignupPassword, setShowSignupPassword] = useState(false);
-    const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
-    const [signupError, setSignupError] = useState('');
-
-    const handleLoginSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setTimeout(() => onLogin(), 1000);
     };
 
-    const handleSignupSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setSignupError('');
-
-        if (!signupName.trim()) {
-            setSignupError('Please enter your full name.');
-            return;
-        }
-        if (!signupEmail.trim() || !/\S+@\S+\.\S+/.test(signupEmail)) {
-            setSignupError('Please enter a valid email address.');
-            return;
-        }
-        if (signupPassword.length < 6) {
-            setSignupError('Password must be at least 6 characters.');
-            return;
-        }
-        if (signupPassword !== signupConfirmPassword) {
-            setSignupError('Passwords do not match.');
-            return;
-        }
-
-        setLoading(true);
-        setTimeout(() => onLogin(), 1000);
-    };
-
-    /* ── Left Branding Panel (shared) ── */
-    const BrandingPanel = () => (
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-[#EDF4FA] p-10 xl:p-16">
-            {/* Logo */}
-            <div>
-                <div className="flex items-center gap-3 mb-12">
-                    <div className="bg-blue-600 rounded-sm p-2.5">
-                        <LayoutGrid className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-xl font-bold text-gray-800 leading-tight">
-                        NexaratsINV
-                    </span>
-                </div>
-
-                {/* Tagline */}
-                <h1 className="text-4xl xl:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
-                    Secure &amp; Simple{' '}
-                    <span className="text-blue-600">Inventory Control.</span>
-                </h1>
-                <p className="text-gray-500 text-base leading-relaxed max-w-[380px]">
-                    Keep your business running smoothly with our enterprise-grade management tools.
-                </p>
-            </div>
-
-            {/* Illustration */}
-            <div className="flex-1 flex items-end justify-center mt-8">
-                <WarehouseIllustration />
-            </div>
-        </div>
-    );
-
-    /* ── Footer (shared) ── */
-    const Footer = () => (
-        <div className="text-center py-3 border-t border-gray-100 shrink-0 bg-white">
-            <p className="text-xs text-gray-400">
-                <span className="font-semibold text-gray-500">NexaratsINV</span> — created by{' '}
-                <span className="font-semibold text-blue-600">Nexarats</span>
-            </p>
-        </div>
-    );
-
-    /* ══════════════════════  SIGNUP VIEW  ══════════════════════ */
-    if (view === 'signup') {
-        return (
-            <div className="h-screen w-full flex flex-col overflow-hidden">
-                <div className="flex flex-1 min-h-0">
-                    {/* Left panel */}
-                    <BrandingPanel />
-
-                    {/* Right panel: Create Account form */}
-                    <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-8 lg:p-12 overflow-y-auto">
-                        <div className="w-full max-w-md">
-                            {/* Icon */}
-                            <div className="flex justify-center mb-6">
-                                <div className="bg-blue-600 rounded-sm p-3.5">
-                                    <LayoutGrid className="w-7 h-7 text-white" />
-                                </div>
-                            </div>
-
-                            <h2 className="text-3xl font-bold text-gray-900 text-center mb-8">
-                                Create Account
-                            </h2>
-
-                            {signupError && (
-                                <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-sm text-sm text-red-600 text-center">
-                                    {signupError}
-                                </div>
-                            )}
-
-                            <form onSubmit={handleSignupSubmit} className="space-y-5">
-                                {/* Full Name */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Full Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter your full name"
-                                        value={signupName}
-                                        onChange={(e) => setSignupName(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                    />
-                                </div>
-
-                                {/* Email */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Email Address
-                                    </label>
-                                    <input
-                                        type="email"
-                                        placeholder="Enter your email address"
-                                        value={signupEmail}
-                                        onChange={(e) => setSignupEmail(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                    />
-                                </div>
-
-                                {/* Password */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Password
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showSignupPassword ? 'text' : 'password'}
-                                            placeholder="Create a password (min 6 chars)"
-                                            value={signupPassword}
-                                            onChange={(e) => setSignupPassword(e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all pr-11"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowSignupPassword(!showSignupPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Confirm Password */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                        Confirm Password
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showSignupConfirmPassword ? 'text' : 'password'}
-                                            placeholder="Re-enter your password"
-                                            value={signupConfirmPassword}
-                                            onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all pr-11"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                        >
-                                            {showSignupConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Create Account button */}
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-sm font-semibold text-sm transition-all disabled:opacity-60 shadow-lg shadow-blue-200/50"
-                                >
-                                    {loading ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                            </svg>
-                                            Creating account...
-                                        </span>
-                                    ) : 'Create Account'}
-                                </button>
-                            </form>
-
-                            {/* Login link */}
-                            <p className="text-center mt-6 text-sm text-gray-500">
-                                Already have an account?{' '}
-                                <button
-                                    onClick={() => { setView('login'); setLoading(false); }}
-                                    className="text-blue-600 font-semibold hover:text-blue-700"
-                                >
-                                    Login
-                                </button>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <Footer />
-            </div>
-        );
-    }
-
-    /* ══════════════════════  LOGIN VIEW  ══════════════════════ */
     return (
-        <div className="h-screen w-full flex flex-col overflow-hidden">
-            <div className="flex flex-1 min-h-0">
-                {/* Left panel: Branding */}
-                <BrandingPanel />
+        <div className="h-screen w-screen bg-white flex flex-col md:flex-row overflow-hidden">
 
-                {/* Right panel: Login form */}
-                <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-8 lg:p-12">
-                    <div className="w-full max-w-md">
-                        {/* Icon */}
-                        <div className="flex justify-center mb-6">
-                            <div className="bg-blue-600 rounded-sm p-3.5">
-                                <LayoutGrid className="w-7 h-7 text-white" />
-                            </div>
+            {/* ── Left panel: Branding ── */}
+            <div className="hidden md:flex md:w-[45%] flex-col justify-between bg-[#EDF4FA] p-10 lg:p-16">
+                <div>
+                    <div className="flex items-center gap-2.5 mb-14">
+                        <div className="bg-blue-600 rounded-lg p-2">
+                            <LayoutGrid className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <span className="text-xl font-bold text-gray-800 tracking-tight">
+                            Nexarats
+                        </span>
+                    </div>
+
+                    <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] mb-6">
+                        Secure &amp; Simple <br />
+                        <span className="text-blue-600">Inventory Control.</span>
+                    </h1>
+                    <p className="text-gray-500 text-lg leading-relaxed max-w-[360px]">
+                        Manage your business operations efficiently with our enterprise-grade toolkit.
+                    </p>
+                </div>
+
+                {/* Illustration - Now better fitted and larger */}
+                <div className="w-full max-w-[480px] mt-auto">
+                    <WarehouseIllustration />
+                </div>
+            </div>
+
+            {/* ── Right panel: Login form ── */}
+            <div className="w-full md:w-[55%] flex items-center justify-center p-8 lg:p-16 bg-white">
+                <div className="w-full max-w-sm">
+                    {/* Icon */}
+                    <div className="flex justify-center mb-8">
+                        <div className="bg-blue-600 rounded-2xl p-4 shadow-xl shadow-blue-500/20">
+                            <LayoutGrid className="w-7 h-7 text-white" />
+                        </div>
+                    </div>
+
+                    <h2 className="text-3xl font-bold text-gray-900 text-center mb-2">
+                        Welcome Back
+                    </h2>
+                    <p className="text-gray-500 text-center mb-10 font-medium">Sign in to your account</p>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Username / Email */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Username or Email
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="admin@nexarats.com"
+                                defaultValue="admin@nexarats.com"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
+                            />
                         </div>
 
-                        <h2 className="text-3xl font-bold text-gray-900 text-center mb-10">
-                            Inventory Login
-                        </h2>
+                        {/* Password */}
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Password
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                defaultValue="admin123"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
+                            />
+                        </div>
 
-                        <form onSubmit={handleLoginSubmit} className="space-y-6">
-                            {/* Username / Email */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Username/Email
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter your username or email"
-                                    defaultValue="admin@nexarats.com"
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                />
-                            </div>
+                        {/* Remember Me Only */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                id="remember"
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={() => setRememberMe(!rememberMe)}
+                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor="remember" className="text-sm font-semibold text-gray-600 cursor-pointer select-none">
+                                Remember me
+                            </label>
+                        </div>
 
-                            {/* Password */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Password
-                                </label>
-                                <input
-                                    type="password"
-                                    placeholder="Enter your password"
-                                    defaultValue="admin123"
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                />
-                            </div>
+                        {/* Login button */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-blue-500/25 disabled:opacity-70 flex items-center justify-center gap-3 active:scale-[0.98]"
+                        >
+                            {loading ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    Signing in...
+                                </>
+                            ) : 'Login'}
+                        </button>
+                    </form>
 
-                            {/* Remember me */}
-                            <div className="flex items-center gap-2">
-                                <input
-                                    id="remember"
-                                    type="checkbox"
-                                    checked={rememberMe}
-                                    onChange={() => setRememberMe(!rememberMe)}
-                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer select-none">
-                                    Remember me
-                                </label>
-                            </div>
-
-                            {/* Login button */}
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-sm font-semibold text-sm transition-all disabled:opacity-60 shadow-lg shadow-blue-200/50"
-                            >
-                                {loading ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                        </svg>
-                                        Signing in...
-                                    </span>
-                                ) : 'Login'}
-                            </button>
-                        </form>
-
-                        {/* Create account link */}
-                        <p className="text-center mt-8 text-sm text-gray-500">
+                    {/* Create account link - RESTORED */}
+                    <div className="mt-8 text-center">
+                        <p className="text-gray-600 font-medium">
                             Don't have an account?{' '}
-                            <button
-                                onClick={() => setView('signup')}
-                                className="text-blue-600 font-semibold hover:text-blue-700"
-                            >
+                            <button className="text-blue-600 font-bold hover:underline ml-1">
                                 Create Account
                             </button>
                         </p>
                     </div>
                 </div>
             </div>
-
-            {/* Footer */}
-            <Footer />
         </div>
     );
 };
 
 export default Login;
-
-

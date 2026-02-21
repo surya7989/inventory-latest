@@ -39,7 +39,7 @@ const RemindersSettings: React.FC = () => {
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-orange-500 rounded-sm flex items-center justify-center">
-                        <Clock className="w-5 h-5 text-white" />
+                        <Clock className="w-3.5 h-3.5 text-white" />
                     </div>
                     <h2 className="text-xl lg:text-2xl font-black text-slate-900">Reminders</h2>
                 </div>
@@ -47,7 +47,7 @@ const RemindersSettings: React.FC = () => {
                     onClick={handleSave}
                     className={`flex items-center space-x-2 px-4 py-2.5 rounded-sm font-bold text-sm transition-all ${saved ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'} text-white shadow-lg shadow-blue-100`}
                 >
-                    {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-4 h-4" />}
+                    {saved ? <CheckCircle2 className="w-4 h-4 animate-in zoom-in" /> : <Save className="w-3.5 h-3.5" />}
                     <span>{saved ? 'Saved!' : 'Save'}</span>
                 </button>
             </div>
@@ -128,7 +128,7 @@ const RemindersSettings: React.FC = () => {
                 ].map(item => (
                     <div key={item.key} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-sm transition-all">
                         <div className="flex items-center space-x-3">
-                            <item.icon className="w-4 h-4 text-slate-400" />
+                            <item.icon className="w-3.5 h-3.5 text-slate-400" />
                             <span className="font-bold text-sm text-slate-900">{item.label}</span>
                         </div>
                         <ToggleSwitch

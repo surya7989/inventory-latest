@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Plus, Minus, Trash2, CheckCircle2, CreditCard, Smartphone, Receipt, HandCoins, X, ChevronRight, LayoutGrid, LayoutList, Building2, ArrowLeftRight, User, Phone, Printer, Send, Copy, Calendar, ArrowLeft, HelpCircle } from 'lucide-react';
-import { Product, CartItem, PaymentMethod } from '../types';
+import { Search, Plus, Minus, Trash2, CheckCircle2, CreditCard, Smartphone, Receipt, Coins, X, ChevronRight, LayoutGrid, LayoutList, Building2, ArrowLeftRight, User, Phone, Printer, Send, Copy, Calendar, ArrowLeft, HelpCircle, ShieldCheck, MapPin, Mail } from 'lucide-react';
+import { Product, CartItem, PaymentMethod, Transaction } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import ThemedInvoice from '../components/ThemedInvoice';
+import Portal from '../components/Portal';
 
 interface BillingProps {
     products: Product[];
@@ -21,6 +23,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
     const [showPayment, setShowPayment] = useState(false);
     const [paymentMode, setPaymentMode] = useState<PaymentMethod>('cash');
     const [isSuccess, setIsSuccess] = useState(false);
+    const [showCheckout, setShowCheckout] = useState(false);
     const [search, setSearch] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showCart, setShowCart] = useState(false);
@@ -31,6 +34,38 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
     const [couponCode, setCouponCode] = useState('');
     const [couponDiscount, setCouponDiscount] = useState(0);
     const [txnInfo, setTxnInfo] = useState<{ id: string; date: string; methodLabel: string } | null>(null);
+
+    // Invoice Theme & Profile
+    const [adminProfile] = useLocalStorage('inv_admin_profile', {
+        businessName: 'My Store',
+        address: 'Business Address',
+        phone: '',
+        email: '',
+        avatar: ''
+    });
+    const [invoiceTheme] = useLocalStorage('nx_invoice_theme', 'vy_classic');
+    const [invoiceConfig] = useLocalStorage('nx_invoice_config', {
+        showLogo: true,
+        showGST: true,
+        showTerms: true,
+        termsText: 'Payment is due within 30 days.',
+        footerText: 'Thank you for your business!'
+    });
+
+    const invoiceThemes: Record<string, { primary: string; accent: string }> = {
+        vy_classic: { primary: '#1E3A8A', accent: '#3B82F6' },
+        vy_stylish: { primary: '#701A75', accent: '#D946EF' },
+        vy_elegant: { primary: '#7F1D1D', accent: '#EF4444' },
+        vy_pro: { primary: '#111827', accent: '#F59E0B' },
+        vy_business: { primary: '#064E3B', accent: '#10B981' },
+        vy_minimal: { primary: '#334155', accent: '#64748B' },
+    };
+
+    const activeTheme = invoiceThemes[invoiceTheme] || invoiceThemes.vy_classic;
+
+    const handlePrint = () => {
+        window.print();
+    };
 
     const filteredProducts = products.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,26 +97,42 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
 
     const removeFromCart = (id: string) => setCart(prev => prev.filter(i => i.id !== id));
 
+    // Per-item Tax calculation logic
+    const cartTaxes = cart.map(item => {
+        const qty = item.quantity;
+        const price = item.price;
+        const rate = item.gstRate || 0;
+        const isInclusive = item.taxType === 'Inclusive';
+
+        const lineTotal = price * qty;
+        let tax = 0;
+        let base = 0;
+
+        if (isInclusive) {
+            base = lineTotal / (1 + rate / 100);
+            tax = lineTotal - base;
+        } else {
+            base = lineTotal;
+            tax = (lineTotal * rate) / 100;
+        }
+
+        return { tax, total: isInclusive ? lineTotal : lineTotal + tax };
+    });
+
     const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const totalGSTAmount = cartTaxes.reduce((acc, curr) => acc + curr.tax, 0);
+    const calculatedGrandTotal = cartTaxes.reduce((acc, curr) => acc + curr.total, 0);
 
-    // Dynamic GST Calculation based on config
-    const getGSTRate = (rate?: number) => rate !== undefined ? rate : parseFloat(gstConfig.defaultRate);
-
-    // For simplicity in this UI, we'll calculate based on the total cart and the default or items individual GST
-    // In a real app, we'd sum up GST per line item
-    const activeRate = parseFloat(gstConfig.defaultRate) || 0;
-    const totalGSTAmount = subtotal * (activeRate / 100);
-
-    const cgstValue = gstConfig.enableCGST ?? (gstConfig as any).cgstEnabled ?? true;
-    const sgstValue = gstConfig.enableSGST ?? (gstConfig as any).sgstEnabled ?? true;
-    const igstValue = gstConfig.enableIGST ?? (gstConfig as any).igstEnabled ?? false;
+    const cgstValue = gstConfig.enableCGST ?? true;
+    const sgstValue = gstConfig.enableSGST ?? true;
+    const igstValue = gstConfig.enableIGST ?? false;
 
     const cgst = cgstValue ? totalGSTAmount / 2 : 0;
     const sgst = sgstValue ? totalGSTAmount / 2 : 0;
     const igst = igstValue ? totalGSTAmount : 0;
 
     const finalGST = igstValue ? igst : (cgst + sgst);
-    const grandTotal = Math.max(0, subtotal + finalGST - couponDiscount);
+    const grandTotal = Math.max(0, calculatedGrandTotal - couponDiscount);
 
     const applyCoupon = () => {
         const code = couponCode.toUpperCase().trim();
@@ -113,7 +164,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
         const info = {
             id: `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`,
             date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' | ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-            methodLabel: paymentMode === 'cash' ? 'Cash' : paymentMode === 'upi' ? 'UPI' : paymentMode === 'card' ? 'Card' : paymentMode === 'bank_transfer' ? 'Bank Transfer' : 'Split'
+            methodLabel: paymentMode === 'cash' ? 'Offline - Cash' : paymentMode === 'upi' ? 'Online - UPI' : paymentMode === 'card' ? 'Online - Card' : paymentMode === 'bank_transfer' ? 'Online - Bank' : 'Online - Split'
         };
         setTxnInfo(info);
         setIsSuccess(true);
@@ -139,7 +190,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                 {/* Top Search & Actions */}
                 <div className="bg-white p-3 lg:p-4 rounded border border-slate-100 shadow-sm flex items-center justify-between mb-4 lg:mb-6">
                     <div className="relative flex-1 max-w-xl">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         <input
                             type="text"
                             value={search}
@@ -150,15 +201,15 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                     </div>
                     <div className="flex items-center space-x-2 lg:space-x-3 ml-2 lg:ml-4">
                         <div className="flex bg-slate-100 p-1 rounded-sm">
-                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-sm ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><LayoutGrid className="w-4 h-4" /></button>
-                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-sm ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><LayoutList className="w-4 h-4" /></button>
+                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-sm ${viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><LayoutGrid className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-sm ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-slate-400'}`}><LayoutList className="w-3.5 h-3.5" /></button>
                         </div>
                         {/* Mobile cart toggle button */}
                         <button
                             onClick={() => setShowCart(!showCart)}
                             className="lg:hidden relative p-2 bg-blue-600 text-white rounded-sm"
                         >
-                            <Receipt className="w-5 h-5" />
+                            <Receipt className="w-3.5 h-3.5" />
                             {cart.length > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full">
                                     {cart.length}
@@ -174,18 +225,44 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
                             {filteredProducts.map(p => (
                                 <div key={p.id} className="bg-white p-3 lg:p-4 rounded border border-slate-100 shadow-sm relative group cursor-pointer hover:border-blue-500 transition-all">
-                                    <div className="aspect-square bg-slate-50 rounded-sm mb-3 lg:mb-4 overflow-hidden relative">
-                                        <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.name} />
+                                    <div className="aspect-square bg-slate-50 rounded-sm mb-3 lg:mb-4 overflow-hidden relative flex items-center justify-center">
+                                        {p.image ? (
+                                            <img
+                                                src={p.image}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                alt={p.name}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-black text-4xl">
+                                                {p.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                         <span className={`absolute top-2 right-2 px-2 py-1 rounded-sm text-[10px] font-black uppercase ${p.status === 'In Stock' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
                                             }`}>{p.status}</span>
                                     </div>
                                     <h4 className="font-black text-slate-900 text-sm mb-1">{p.name}</h4>
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-lg font-black text-slate-900">₹{p.price}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-lg font-black text-slate-900">₹{p.price}</p>
+                                                {p.mrp > p.price && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="text-[10px] text-slate-400 line-through font-bold">₹{p.mrp}</p>
+                                                        <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full font-black">
+                                                            {(((p.mrp - p.price) / p.mrp) * 100).toFixed(1)}% OFF
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase">Stock: {p.stock}</p>
+                                            <div className="flex items-center gap-1.5 mt-1">
+                                                <ShieldCheck className="w-2.5 h-2.5 text-slate-300" />
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                                                    {p.gstRate}% {p.taxType} Tax
+                                                </span>
+                                            </div>
                                         </div>
-                                        <button onClick={() => addToCart(p)} className="p-2 bg-blue-600 text-white rounded-sm shadow-lg shadow-blue-100"><Plus className="w-5 h-5" /></button>
+                                        <button onClick={() => addToCart(p)} className="p-2 bg-blue-600 text-white rounded-sm shadow-lg shadow-blue-100"><Plus className="w-3.5 h-3.5" /></button>
                                     </div>
                                 </div>
                             ))}
@@ -207,18 +284,37 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                     {filteredProducts.map(p => (
                                         <tr key={p.id} className="hover:bg-slate-50/50">
                                             <td className="px-4 lg:px-6 py-4 flex items-center space-x-3">
-                                                <img src={p.image} className="w-10 h-10 rounded-sm object-cover" alt={p.name} />
+                                                {p.image ? (
+                                                    <img src={p.image} className="w-10 h-10 rounded-sm object-cover" alt={p.name} />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-sm flex items-center justify-center bg-blue-50 text-blue-600 font-black text-lg">
+                                                        {p.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
                                                 <span className="font-black text-sm">{p.name}</span>
                                             </td>
                                             <td className="px-4 lg:px-6 py-4 text-xs font-bold text-slate-500 hidden sm:table-cell">{p.category}</td>
-                                            <td className="px-4 lg:px-6 py-4 font-black">₹{p.price}</td>
+                                            <td className="px-4 lg:px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-black text-sm text-slate-900">₹{p.price}</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">{p.gstRate}% {p.taxType}</span>
+                                                    {p.mrp > p.price && (
+                                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                                            <span className="text-[10px] text-slate-400 line-through font-bold">₹{p.mrp}</span>
+                                                            <span className="text-[10px] bg-green-50 text-green-600 px-1.5 rounded-full font-black">
+                                                                {(((p.mrp - p.price) / p.mrp) * 100).toFixed(1)}%
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-4 lg:px-6 py-4 hidden md:table-cell">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${p.status === 'In Stock' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                                                     }`}>{p.status}</span>
                                             </td>
                                             <td className="px-4 lg:px-6 py-4 font-black">{p.stock}</td>
                                             <td className="px-4 lg:px-6 py-4">
-                                                <button onClick={() => addToCart(p)} className="p-2 bg-blue-600 text-white rounded-sm"><Plus className="w-4 h-4" /></button>
+                                                <button onClick={() => addToCart(p)} className="p-2 bg-blue-600 text-white rounded-sm"><Plus className="w-3 h-3" /></button>
                                             </td>
                                         </tr>
                                     ))}
@@ -242,7 +338,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                     <h3 className="text-lg font-black text-slate-900">Bill Summary</h3>
                     <div className="flex items-center space-x-3">
                         <button onClick={() => setCart([])} className="text-xs font-bold text-red-500 uppercase tracking-widest hover:underline">Clear All</button>
-                        <button onClick={() => setShowCart(false)} className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+                        <button onClick={() => setShowCart(false)} className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
                     </div>
                 </div>
 
@@ -254,21 +350,47 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                         </div>
                     ) : (
                         cart.map(item => (
-                            <div key={item.id} className="bg-slate-50 p-3 lg:p-4 rounded border border-transparent hover:border-slate-200 transition-all">
-                                <div className="flex justify-between items-start mb-3">
-                                    <span className="font-black text-slate-900 text-sm">{item.name}</span>
-                                    <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                            <div key={item.id} className="bg-slate-50 p-3 lg:p-4 rounded border border-transparent hover:border-slate-200 transition-all flex gap-4">
+                                <div className="w-16 h-16 bg-white border border-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                                    {item.image ? (
+                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-black text-xl uppercase">
+                                            {item.name.charAt(0)}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3 bg-white border border-slate-100 rounded-sm p-1">
-                                        <button onClick={() => updateQty(item.id, -1)} className="p-1 text-slate-400"><Minus className="w-3 h-3" /></button>
-                                        <span className="text-xs font-black">{item.quantity}</span>
-                                        <button onClick={() => updateQty(item.id, 1)} className="p-1 text-slate-400"><Plus className="w-3 h-3" /></button>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex flex-col truncate">
+                                            <span className="font-black text-slate-900 text-sm truncate">{item.name}</span>
+                                            {item.mrp > item.price && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] text-slate-400 line-through font-bold">₹{item.mrp}</span>
+                                                    <span className="text-[10px] text-green-600 font-black">Save ₹{(item.mrp - item.price).toFixed(0)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-red-500 ml-2"><Trash2 className="w-3 h-3" /></button>
                                     </div>
-                                    <p className="font-black text-slate-900">₹{(item.price * item.quantity).toLocaleString()}</p>
+
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3 bg-white border border-slate-100 rounded-sm p-1">
+                                            <button onClick={() => updateQty(item.id, -1)} className="p-1 text-slate-400"><Minus className="w-2.5 h-2.5" /></button>
+                                            <span className="text-xs font-black">{item.quantity}</span>
+                                            <button onClick={() => updateQty(item.id, 1)} className="p-1 text-slate-400"><Plus className="w-2.5 h-2.5" /></button>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-black text-slate-900 leading-none">₹{(item.price * item.quantity).toLocaleString()}</p>
+                                            {item.mrp > item.price && (
+                                                <p className="text-[9px] font-bold text-green-600 uppercase tracking-tighter mt-1">Total Saving: ₹{((item.mrp - item.price) * item.quantity).toLocaleString()}</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ))
+
                     )}
                 </div>
 
@@ -290,17 +412,17 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                             </button>
                         </div>
                         <div className="space-y-2 border-t border-slate-200 pt-4 text-xs font-bold text-slate-500">
-                            <div className="flex justify-between"><span>Subtotal</span><span className="text-slate-900">₹{subtotal.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span>Subtotal (Net)</span><span className="text-slate-900">₹{(calculatedGrandTotal - finalGST).toLocaleString()}</span></div>
                             {cgstValue && (
-                                <div className="flex justify-between"><span>CGST ({activeRate / 2}%)</span><span className="text-slate-900">₹{cgst.toLocaleString()}</span></div>
+                                <div className="flex justify-between"><span>CGST (Split)</span><span className="text-slate-900">₹{cgst.toLocaleString()}</span></div>
                             )}
                             {sgstValue && (
-                                <div className="flex justify-between"><span>SGST ({activeRate / 2}%)</span><span className="text-slate-900">₹{sgst.toLocaleString()}</span></div>
+                                <div className="flex justify-between"><span>SGST (Split)</span><span className="text-slate-900">₹{sgst.toLocaleString()}</span></div>
                             )}
                             {igstValue && (
-                                <div className="flex justify-between"><span>IGST ({activeRate}%)</span><span className="text-slate-900">₹{igst.toLocaleString()}</span></div>
+                                <div className="flex justify-between"><span>IGST Total</span><span className="text-slate-900">₹{igst.toLocaleString()}</span></div>
                             )}
-                            <div className="flex justify-between border-t border-slate-100 pt-1 text-slate-900"><span>Total Tax ({activeRate}%)</span><span>₹{finalGST.toLocaleString()}</span></div>
+                            <div className="flex justify-between border-t border-slate-100 pt-1 text-slate-900"><span>Weighted Tax Total</span><span>₹{finalGST.toLocaleString()}</span></div>
                             {couponDiscount > 0 && (
                                 <div className="flex justify-between text-red-500">
                                     <span>Discount</span>
@@ -318,27 +440,27 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                         onClick={handleProceedToPayment}
                         className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-black py-4 lg:py-5 rounded flex items-center justify-center space-x-3 shadow-xl transition-all disabled:opacity-50"
                     >
-                        <CheckCircle2 className="w-5 lg:w-6 h-5 lg:h-6" />
+                        <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
                         <span>Proceed to Payment</span>
                     </button>
                 </div>
             </div>
             {/* Customer Info Modal */}
             {showCustomerInfo && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-6">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 lg:p-6">
                     <div className="bg-white rounded w-full max-w-md shadow-2xl overflow-hidden relative">
                         {/* Close Button */}
                         <button
                             onClick={() => setShowCustomerInfo(false)}
                             className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-sm transition-all"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-3.5 h-3.5" />
                         </button>
 
                         {/* Header */}
                         <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 flex flex-col items-center">
                             <div className="w-16 h-16 bg-white/20 rounded flex items-center justify-center mb-4">
-                                <User className="w-8 h-8 text-white" />
+                                <User className="w-3.5 h-3.5 text-white" />
                             </div>
                             <h2 className="text-2xl font-black text-white">Customer Details</h2>
                             <p className="text-blue-200 text-sm font-medium mt-1">Enter customer information</p>
@@ -352,7 +474,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                     Customer Name
                                 </label>
                                 <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                                     <input
                                         type="text"
                                         value={customerName}
@@ -369,7 +491,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                     Phone Number
                                 </label>
                                 <div className="relative">
-                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                                     <input
                                         type="tel"
                                         value={customerPhone}
@@ -391,7 +513,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                 onClick={handleCustomerInfoSubmit}
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-sm flex items-center justify-center space-x-3 shadow-lg shadow-blue-200/50 transition-all text-sm"
                             >
-                                <CheckCircle2 className="w-5 h-5" />
+                                <CheckCircle2 className="w-3.5 h-3.5" />
                                 <span>Continue to Payment</span>
                             </button>
 
@@ -413,25 +535,25 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
 
             {/* Payment Modal */}
             {showPayment && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 lg:p-6">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 lg:p-6">
                     <div className="bg-white rounded lg:rounded-[40px] w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col lg:flex-row relative">
                         {/* Close Button */}
                         <button
                             onClick={() => setShowPayment(false)}
                             className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-sm transition-all"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-3.5 h-3.5" />
                         </button>
 
                         {/* Sidebar for Payment Methods */}
                         <div className="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-slate-100 p-4 lg:p-8 space-y-2 lg:space-y-4 flex lg:flex-col overflow-x-auto lg:overflow-x-visible">
                             <h3 className="hidden lg:block text-lg font-black text-slate-900 mb-4 lg:mb-8">Select Payment</h3>
                             {[
-                                { id: 'cash', label: 'Cash', icon: HandCoins },
-                                { id: 'upi', label: 'UPI', icon: Smartphone },
-                                { id: 'card', label: 'Card', icon: CreditCard },
-                                { id: 'split', label: 'Split', icon: ArrowLeftRight },
-                                { id: 'bank_transfer', label: 'Bank Transfer', icon: Building2 },
+                                { id: 'cash', label: 'Offline (Cash)', icon: Coins },
+                                { id: 'upi', label: 'Online (UPI)', icon: Smartphone },
+                                { id: 'card', label: 'Online (Card)', icon: CreditCard },
+                                { id: 'split', label: 'Online (Split)', icon: ArrowLeftRight },
+                                { id: 'bank_transfer', label: 'Online (Bank)', icon: Building2 },
                             ].map(method => (
                                 <button
                                     key={method.id}
@@ -440,10 +562,10 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                         }`}
                                 >
                                     <div className="flex items-center space-x-3 lg:space-x-4">
-                                        <method.icon className="w-5 lg:w-6 h-5 lg:h-6" />
+                                        <method.icon className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
                                         <span className="font-black text-xs lg:text-sm">{method.label}</span>
                                     </div>
-                                    <ChevronRight className="w-4 h-4 hidden lg:block" />
+                                    <ChevronRight className="w-3 h-3 hidden lg:block" />
                                 </button>
                             ))}
                         </div>
@@ -559,12 +681,12 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
             )}
             {/* Payment Success Screen */}
             {isSuccess && txnInfo && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
                         {/* Green Header */}
                         <div className="bg-[#10B981] p-10 flex flex-col items-center text-white text-center">
                             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6 border-4 border-white/20">
-                                <CheckCircle2 className="w-10 h-10 text-white" />
+                                <CheckCircle2 className="w-4 h-4 text-white" />
                             </div>
                             <h2 className="text-3xl font-black mb-2">Payment Successful</h2>
                             <p className="text-white/80 font-bold opacity-90">Your transaction has been completed successfully</p>
@@ -580,7 +702,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                         <div className="p-8 lg:p-10 space-y-6">
                             <div className="flex items-center space-x-4">
                                 <div className="w-12 h-12 bg-green-50 rounded flex items-center justify-center">
-                                    <Receipt className="w-6 h-6 text-[#10B981]" />
+                                    <Receipt className="w-3.5 h-3.5 text-[#10B981]" />
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Method</p>
@@ -597,13 +719,13 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                     <p className="font-black text-slate-900">{txnInfo.id}</p>
                                 </div>
                                 <button className="p-2 hover:bg-slate-100 rounded-sm transition-colors">
-                                    <Copy className="w-4 h-4 text-slate-400" />
+                                    <Copy className="w-3 h-3 text-slate-400" />
                                 </button>
                             </div>
 
                             <div className="flex items-center space-x-4">
                                 <div className="w-12 h-12 bg-purple-50 rounded flex items-center justify-center">
-                                    <Calendar className="w-6 h-6 text-purple-600" />
+                                    <Calendar className="w-3.5 h-3.5 text-purple-600" />
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date & Time</p>
@@ -617,17 +739,20 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                     onClick={resetBilling}
                                     className="w-full bg-[#10B981] hover:bg-[#059669] text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-green-100 transition-all active:scale-95"
                                 >
-                                    <ArrowLeft className="w-5 h-5" />
+                                    <ArrowLeft className="w-3.5 h-3.5 text-white" />
                                     <span>Back to Billing Dashboard</span>
                                 </button>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button className="flex items-center justify-center space-x-2 py-4 px-4 bg-white border-2 border-slate-100 rounded font-black text-slate-600 hover:bg-slate-50 transition-all text-sm">
-                                        <Printer className="w-4 h-4" />
+                                    <button
+                                        onClick={handlePrint}
+                                        className="flex items-center justify-center space-x-2 py-4 px-4 bg-white border-2 border-slate-100 rounded font-black text-slate-600 hover:bg-slate-50 transition-all text-sm"
+                                    >
+                                        <Printer className="w-3.5 h-3.5" />
                                         <span>Print Invoice</span>
                                     </button>
                                     <button className="flex items-center justify-center space-x-2 py-4 px-4 bg-white border-2 border-slate-100 rounded font-black text-slate-600 hover:bg-slate-50 transition-all text-sm">
-                                        <div className="-rotate-45"><Send className="w-4 h-4" /></div>
+                                        <div className="-rotate-45"><Send className="w-3.5 h-3.5" /></div>
                                         <span>Send Receipt</span>
                                     </button>
                                 </div>
@@ -638,13 +763,29 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                         <div className="p-8 pt-0 flex flex-col items-center">
                             <p className="text-xs font-bold text-slate-400 mb-2">Need help with this transaction?</p>
                             <button className="flex items-center space-x-2 text-[#10B981] font-black text-sm hover:underline">
-                                <HelpCircle className="w-4 h-4" />
+                                <HelpCircle className="w-3.5 h-3.5" />
                                 <span>Contact Support</span>
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+            {/* Printable Invoice Component (Hidden from UI, visible only to @media print) */}
+            <div id="printable-invoice" className="print-only p-8 bg-white min-h-screen text-slate-900" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+                <ThemedInvoice
+                    adminProfile={adminProfile}
+                    invoiceTheme={invoiceTheme}
+                    customerName={customerName}
+                    customerPhone={customerPhone}
+                    txnInfo={txnInfo}
+                    cart={cart}
+                    finalGST={finalGST}
+                    calculatedGrandTotal={calculatedGrandTotal}
+                    grandTotal={grandTotal}
+                    couponDiscount={couponDiscount}
+                />
+            </div>
         </div>
     );
 };

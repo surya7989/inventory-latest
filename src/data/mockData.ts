@@ -1,17 +1,91 @@
 import { Product, Customer, Vendor } from '../types';
 
 export const DEFAULT_PRODUCTS: Product[] = [
-    { id: '1', name: 'Fortune Oil 1L', category: 'Dairy', price: 180, purchasePrice: 150, stock: 245, status: 'In Stock', sku: 'FOR-101', gstRate: 18, image: 'https://picsum.photos/id/11/200/200' },
-    { id: '2', name: 'Amul Milk 1L', category: 'Dairy', price: 64, purchasePrice: 58, stock: 312, status: 'In Stock', sku: 'AMU-202', gstRate: 5, image: 'https://picsum.photos/id/12/200/200' },
-    { id: '3', name: 'Basmati Rice 5kg', category: 'Groceries', price: 625, purchasePrice: 580, stock: 45, status: 'In Stock', sku: 'IND-303', gstRate: 0, image: 'https://picsum.photos/id/13/200/200' },
-    { id: '4', name: 'Colgate 200g', category: 'Personal Care', price: 125, purchasePrice: 105, stock: 8, status: 'Low Stock', sku: 'COL-404', gstRate: 12, image: 'https://picsum.photos/id/14/200/200' },
+    {
+        id: '1',
+        name: 'Organic Almond Milk',
+        category: 'Dairy',
+        price: 249,
+        purchasePrice: 180,
+        stock: 45,
+        status: 'In Stock',
+        sku: 'AMK-001',
+        gstRate: 5,
+        unit: 'Litre',
+        mrp: 299,
+        discountPercentage: 17,
+        profit: 69,
+        image: 'https://images.unsplash.com/photo-1550583724-125581cc25fb?auto=format&fit=crop&q=80&w=800',
+        description: 'Pure organic almond milk, unsweetened and rich in Vitamin E. Perfect for health seekers.',
+        minStock: 10,
+        taxType: 'Inclusive'
+    },
+    {
+        id: '2',
+        name: 'Premium Arabica Coffee',
+        category: 'Beverages',
+        price: 899,
+        purchasePrice: 650,
+        stock: 22,
+        status: 'In Stock',
+        sku: 'COF-772',
+        gstRate: 12,
+        unit: 'Pack',
+        mrp: 1200,
+        discountPercentage: 25,
+        profit: 249,
+        image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&q=80&w=800',
+        description: 'Single-origin Arabica beans, medium roast with notes of chocolate and caramel.',
+        minStock: 5,
+        taxType: 'Inclusive'
+    },
+    {
+        id: '3',
+        name: 'Smart Noise Cancelling Buds',
+        category: 'Electronics',
+        price: 4999,
+        purchasePrice: 3800,
+        stock: 8,
+        status: 'Low Stock',
+        sku: 'EBS-990',
+        gstRate: 18,
+        unit: 'Pieces',
+        mrp: 6999,
+        discountPercentage: 28,
+        profit: 1199,
+        image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=800',
+        description: 'Next-gen wireless earbuds with active noise cancellation and 30-hour battery life.',
+        minStock: 10,
+        taxType: 'Inclusive'
+    }
 ];
 
 export const DEFAULT_CUSTOMERS: Customer[] = [
-    { id: '#C-1001', name: 'Rajesh Kumar', email: 'rajesh@email.com', phone: '+91 98765 43210', totalPaid: 15000, pending: 2000, status: 'Partial' },
-    { id: '#C-1002', name: 'Priya Sharma', email: 'priya@email.com', phone: '+91 98765 43211', totalPaid: 4500, pending: 0, status: 'Paid' },
+    {
+        id: 'CUST-1',
+        name: 'Rahul Sharma',
+        email: 'rahul@example.com',
+        phone: '9876543210',
+        totalPaid: 12450,
+        pending: 0,
+        status: 'Paid',
+        lastTransaction: '2024-02-21',
+        totalInvoices: 5
+    }
 ];
 
 export const DEFAULT_VENDORS: Vendor[] = [
-    { id: 'V-1001', name: 'Raghav', businessName: 'Raghav Food Distributors', gstNumber: '29AAPFR6565D1Z1', phone: '9876543210', email: 'raghav@gmail.com', totalPaid: 32000, pendingAmount: 8000 },
+    {
+        id: 'VEND-1',
+        name: 'Global Electronics Ltd',
+        contactPerson: 'Amit Singh',
+        email: 'supply@globalelec.com',
+        phone: '1800-ELE-999',
+        category: 'Electronics',
+        totalPurchased: 45000,
+        pending: 12000,
+        status: 'Active',
+        lastPurchase: '2024-02-15'
+    }
 ];
+
