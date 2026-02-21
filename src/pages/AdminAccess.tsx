@@ -9,8 +9,8 @@ interface AdminUser {
     role: string;
     status: 'Active' | 'Inactive';
     lastLogin: string;
-    password?: string;
     permissions?: string[];
+    password?: string;
 }
 
 const ACCESS_MODULES = [
@@ -47,10 +47,10 @@ const AdminAccess: React.FC = () => {
     });
 
     const [users, setUsers] = useLocalStorage<AdminUser[]>('nx_admin_users', [
-        { id: '1', name: 'Surya Teja', email: 'surya@nexarats.com', password: 'admin', role: 'Super Admin', status: 'Active', lastLogin: '10 mins ago', permissions: ACCESS_MODULES.map(m => m.id) },
-        { id: '2', name: 'Saisunil', email: 'sai@nexarats.com', password: 'admin', role: 'Admin', status: 'Active', lastLogin: '1 hour ago', permissions: ACCESS_MODULES.map(m => m.id) },
-        { id: '3', name: 'Nexa Staff', email: 'staff@nexarats.com', password: 'staff', role: 'Manager', status: 'Active', lastLogin: 'Yesterday', permissions: ['dashboard', 'billing', 'inventory'] },
-        { id: '4', name: 'Accountant', email: 'accounts@nexarats.com', password: 'accounts', role: 'Accountant', status: 'Inactive', lastLogin: '5 days ago', permissions: ['dashboard', 'analytics'] }
+        { id: '1', name: 'Surya Teja', email: 'surya@nexarats.com', role: 'Super Admin', status: 'Active', lastLogin: '10 mins ago', permissions: ACCESS_MODULES.map(m => m.id) },
+        { id: '2', name: 'Saisunil', email: 'sai@nexarats.com', role: 'Admin', status: 'Active', lastLogin: '1 hour ago', permissions: ACCESS_MODULES.map(m => m.id) },
+        { id: '3', name: 'Nexa Staff', email: 'staff@nexarats.com', role: 'Manager', status: 'Active', lastLogin: 'Yesterday', permissions: ['dashboard', 'billing', 'inventory'] },
+        { id: '4', name: 'Accountant', email: 'accounts@nexarats.com', role: 'Accountant', status: 'Inactive', lastLogin: '5 days ago', permissions: ['dashboard', 'analytics'] }
     ]);
 
     const filteredUsers = users.filter(user =>

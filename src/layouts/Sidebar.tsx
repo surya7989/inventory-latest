@@ -17,22 +17,22 @@ interface SidebarProps {
 
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, isOpen, onClose, user }) => {
-    const profile = {
-        name: user?.name || 'Administrator',
-        role: user?.role || 'Full Access',
-        avatar: `https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=random&bold=true`
-    };
+    const [profile] = useLocalStorage('inv_admin_profile', {
+        name: user?.name || 'Admin',
+        role: user?.role || 'Administrator',
+        avatar: `https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=random`
+    });
 
 
     const menuItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Super Admin', 'Admin', 'Manager', 'Staff', 'Accountant'] },
-        { id: 'billing', icon: Receipt, label: 'Billing / POS', roles: ['Super Admin', 'Admin', 'Manager', 'Staff'] },
-        { id: 'inventory', icon: Package, label: 'Inventory', roles: ['Super Admin', 'Admin', 'Manager', 'Staff'] },
-        { id: 'customers', icon: Users, label: 'Customers', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
-        { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Super Admin', 'Admin', 'Manager'] },
-        { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Super Admin', 'Admin', 'Manager'] },
-        { id: 'settings', icon: Settings, label: 'Settings', roles: ['Super Admin', 'Admin'] },
-        { id: 'admin-access', icon: ShieldCheck, label: 'Admin Access', roles: ['Super Admin', 'Admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff', 'Accountant', 'Delivery Agent'] },
+        { id: 'billing', icon: Receipt, label: 'Billing / POS', roles: ['Admin', 'Manager', 'Staff'] },
+        { id: 'inventory', icon: Package, label: 'Inventory', roles: ['Admin', 'Manager', 'Staff'] },
+        { id: 'customers', icon: Users, label: 'Customers', roles: ['Admin', 'Manager', 'Accountant'] },
+        { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Admin', 'Manager'] },
+        { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Admin', 'Manager'] },
+        { id: 'settings', icon: Settings, label: 'Settings', roles: ['Admin'] },
+        { id: 'admin-access', icon: ShieldCheck, label: 'Admin Access', roles: ['Admin'] },
     ];
 
     const filteredMenuItems = menuItems.filter(item => {
