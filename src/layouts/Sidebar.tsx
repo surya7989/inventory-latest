@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    LayoutDashboard, Receipt, Package, Users, Truck, BarChart3, Settings, ShoppingCart, LogOut, X
+    LayoutDashboard, Receipt, Package, Users, Truck, BarChart3, Settings, ShoppingCart, LogOut, X, ShieldCheck
 } from 'lucide-react';
 import { Page, User } from '../types';
 
@@ -32,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
         { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Admin', 'Manager'] },
         { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Admin', 'Manager'] },
         { id: 'settings', icon: Settings, label: 'Settings', roles: ['Admin'] },
+        { id: 'admin-access', icon: ShieldCheck, label: 'Admin Access', roles: ['Admin'] },
     ];
 
     const filteredMenuItems = menuItems.filter(item => {

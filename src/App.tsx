@@ -12,6 +12,7 @@ import Reports from './pages/Reports';
 import OnlineStore from './pages/OnlineStore';
 import Storefront from './pages/Storefront';
 import Login from './pages/Login';
+import AdminAccess from './pages/AdminAccess';
 
 
 import { Page, Product, Customer, Vendor, CartItem, Transaction, PurchaseOrder, User, PreBooking, OrderStatus } from './types';
@@ -245,6 +246,7 @@ const App: React.FC = () => {
                             onUpdatePreBooking={updatePreBookingStatus}
                         />
                     )}
+                    {page === 'admin-access' && <AdminAccess />}
                     {page === 'storefront' && (
                         <Storefront
                             products={products}
