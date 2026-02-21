@@ -5,29 +5,33 @@
   "type": "module",
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
+    "server": "cd server && npm run dev",
+    "full": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "node ./node_modules/vite/bin/vite.js build",
-    "preview": "node ./node_modules/vite/bin/vite.js preview"
+    "preview": "node ./node_modules/vite/bin/vite.js preview",
+    "setup": "cd server && npm install && npx prisma generate && npx prisma migrate dev"
   },
   "dependencies": {
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "lucide-react": "^0.469.0",
-    "recharts": "^2.15.0",
-    "framer-motion": "^12.0.0",
     "canvas-confetti": "1.9.3",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
+    "framer-motion": "^12.0.0",
+    "lucide-react": "^0.469.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "recharts": "^2.15.0",
     "tailwind-merge": "2.5.4"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.6.4",
     "@types/node": "^22.14.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/canvas-confetti": "^1.6.4",
     "@vitejs/plugin-react": "^5.0.0",
-    "tailwindcss": "^3.4.0",
     "autoprefixer": "^10.4.0",
+    "concurrently": "^9.2.1",
     "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   },

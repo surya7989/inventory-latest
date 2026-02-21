@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  password     String
+  name         String
+  phone        String?
+  businessName String?
+  role         String    @default("ADMIN")
+  createdAt    DateTime  @default(now())
+  invoices     Invoice[]
+}
+
+model Product {
+  id            String    @id @default(cuid())
+  name          String
+  sku           String    @unique
+  category      String
+  price         Float
+  purchasePrice Float
+  stock         Int
+  gstRate       Float     @default(18)
+  unit          String    @default("Pieces")
+  status        String    @default("IN_STOCK")
+  image         String?
+  taxType       String    @default("Inclusive")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  invoiceItems  InvoiceItem[]
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  totalPaid Float     @default(0)
+  pending   Float     @default(0)
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id         String        @id @default(cuid())
+  number     String        @unique
+  customer   Customer?     @relation(fields: [customerId], references: [id])
+  customerId String?
+  user       User          @relation(fields: [userId], references: [id])
+  userId     String
+  items      InvoiceItem[]
+  subtotal   Float
+  gstAmount  Float
+  total      Float
+  method     String
+  status     String        @default("COMPLETED")
+  source     String        @default("offline")
+  createdAt  DateTime      @default(now())
+}
+
+model InvoiceItem {
+  id        String  @id @default(cuid())
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+  invoiceId String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  price     Float
+  gst       Float
+}
