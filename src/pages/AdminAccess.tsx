@@ -9,6 +9,7 @@ interface AdminUser {
     role: string;
     status: 'Active' | 'Inactive';
     lastLogin: string;
+    password?: string;
     permissions?: string[];
 }
 
@@ -46,10 +47,10 @@ const AdminAccess: React.FC = () => {
     });
 
     const [users, setUsers] = useLocalStorage<AdminUser[]>('nx_admin_users', [
-        { id: '1', name: 'Surya Teja', email: 'surya@nexarats.com', role: 'Super Admin', status: 'Active', lastLogin: '10 mins ago', permissions: ACCESS_MODULES.map(m => m.id) },
-        { id: '2', name: 'Saisunil', email: 'sai@nexarats.com', role: 'Admin', status: 'Active', lastLogin: '1 hour ago', permissions: ACCESS_MODULES.map(m => m.id) },
-        { id: '3', name: 'Nexa Staff', email: 'staff@nexarats.com', role: 'Manager', status: 'Active', lastLogin: 'Yesterday', permissions: ['dashboard', 'billing', 'inventory'] },
-        { id: '4', name: 'Accountant', email: 'accounts@nexarats.com', role: 'Accountant', status: 'Inactive', lastLogin: '5 days ago', permissions: ['dashboard', 'analytics'] }
+        { id: '1', name: 'Surya Teja', email: 'surya@nexarats.com', password: 'admin', role: 'Super Admin', status: 'Active', lastLogin: '10 mins ago', permissions: ACCESS_MODULES.map(m => m.id) },
+        { id: '2', name: 'Saisunil', email: 'sai@nexarats.com', password: 'admin', role: 'Admin', status: 'Active', lastLogin: '1 hour ago', permissions: ACCESS_MODULES.map(m => m.id) },
+        { id: '3', name: 'Nexa Staff', email: 'staff@nexarats.com', password: 'staff', role: 'Manager', status: 'Active', lastLogin: 'Yesterday', permissions: ['dashboard', 'billing', 'inventory'] },
+        { id: '4', name: 'Accountant', email: 'accounts@nexarats.com', password: 'accounts', role: 'Accountant', status: 'Inactive', lastLogin: '5 days ago', permissions: ['dashboard', 'analytics'] }
     ]);
 
     const filteredUsers = users.filter(user =>
@@ -68,6 +69,7 @@ const AdminAccess: React.FC = () => {
             id: `ADM-${Date.now()}`,
             name: newUser.name,
             email: newUser.email,
+            password: newUser.password,
             role: newUser.role,
             status: newUser.status,
             lastLogin: 'Never',
@@ -199,8 +201,8 @@ const AdminAccess: React.FC = () => {
                                             <button
                                                 onClick={() => toggleStatus(item.id)}
                                                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-full transition-all border cursor-pointer ${item.status === 'Active'
-                                                        ? 'text-green-600 bg-green-50 border-green-100 hover:bg-green-100'
-                                                        : 'text-slate-400 bg-slate-50 border-slate-100 hover:bg-slate-100'
+                                                    ? 'text-green-600 bg-green-50 border-green-100 hover:bg-green-100'
+                                                    : 'text-slate-400 bg-slate-50 border-slate-100 hover:bg-slate-100'
                                                     }`}
                                             >
                                                 {item.status === 'Active' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}

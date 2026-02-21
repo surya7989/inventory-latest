@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, AlertCircle, ShieldCheck } from 'lucide-react';
+import { User, UserRole } from '../types';
 
 interface LoginProps {
-    onLogin: () => void;
+    onLogin: (user: User) => void;
 }
 
 /* Inline SVG warehouse illustration */
@@ -100,12 +101,43 @@ const WarehouseIllustration = () => (
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [loading, setLoading] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false);
+    const [id, setId] = useState('admin@nexarats.com');
+    const [password, setPassword] = useState('admin');
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setTimeout(() => onLogin(), 1000);
+        setError(null);
+
+        // Fetch users from local storage to validate
+        const savedUsers = JSON.parse(localStorage.getItem('nx_admin_users') || '[]');
+
+        // Find matching user
+        const user = savedUsers.find((u: any) =>
+            (u.email === id || u.id === id) && u.password === password
+        );
+
+        setTimeout(() => {
+            if (user) {
+                if (user.status === 'Inactive') {
+                    setError('This account has been disabled by the Super Admin.');
+                    setLoading(false);
+                    return;
+                }
+
+                onLogin({
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role as UserRole,
+                    permissions: user.permissions || []
+                });
+            } else {
+                setError('Invalid credentials. Please contact your administrator.');
+                setLoading(false);
+            }
+        }, 800);
     };
 
     return (
@@ -154,16 +186,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <p className="text-gray-500 text-center mb-10 font-medium">Sign in to your account</p>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {error && (
+                            <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
+                                <AlertCircle className="w-5 h-5 shrink-0" />
+                                <p className="text-xs font-bold uppercase tracking-tight leading-tight">{error}</p>
+                            </div>
+                        )}
                         {/* Username / Email */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Username or Email
+                                Email Address
                             </label>
                             <input
                                 type="text"
                                 placeholder="admin@nexarats.com"
-                                defaultValue="admin@nexarats.com"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
+                                value={id}
+                                onChange={(e) => setId(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold shadow-inner"
                             />
                         </div>
 
@@ -175,23 +214,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             <input
                                 type="password"
                                 placeholder="••••••••"
-                                defaultValue="admin123"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-black tracking-widest shadow-inner"
                             />
-                        </div>
-
-                        {/* Remember Me Only */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                id="remember"
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={() => setRememberMe(!rememberMe)}
-                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <label htmlFor="remember" className="text-sm font-semibold text-gray-600 cursor-pointer select-none">
-                                Remember me
-                            </label>
                         </div>
 
                         {/* Login button */}
@@ -206,7 +232,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
-                                    Signing in...
+                                    Validating Site Access...
                                 </>
                             ) : 'Login'}
                         </button>
@@ -219,6 +245,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             <button className="text-blue-600 font-bold hover:underline ml-1">
                                 Create Account
                             </button>
+                        </p>
+                    </div>
+
+                    {/* Developer Tip */}
+                    <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <div className="flex items-center gap-2 mb-2">
+                            <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Administrator Tip</span>
+                        </div>
+                        <p className="text-[11px] font-medium text-slate-500 leading-normal">
+                            Test the new admin flow using:<br />
+                            <span className="font-bold text-slate-900">surya@nexarats.com</span> / <span className="font-bold text-slate-900">admin</span>
                         </p>
                     </div>
                 </div>

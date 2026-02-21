@@ -28,20 +28,16 @@ const App: React.FC = () => {
     const [transactions, setTransactions] = useLocalStorage<Transaction[]>('inv_transactions', []);
     const [purchases, setPurchases] = useLocalStorage<PurchaseOrder[]>('inv_purchases', []);
     const [preBookings, setPreBookings] = useLocalStorage<PreBooking[]>('inv_prebookings', []);
-    const [currentUser, setCurrentUser] = useLocalStorage<User | null>('inv_user', {
-        id: 'ADMIN-001',
-        name: 'Nexarats',
-
-        email: 'admin@nexarats.com',
-        role: 'Admin',
-        permissions: ['all']
-    });
+    const [currentUser, setCurrentUser] = useLocalStorage<User | null>('inv_user', null);
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
+        if (!currentUser && page !== 'login') {
+            setPage('login');
+        }
         document.title = `${currentUser?.name || 'Nexarats'}INV - Inventory Control`;
-    }, [currentUser]);
+    }, [currentUser, page, setPage]);
     const inventoryValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
     const lowStockCount = products.filter(p => p.status === 'Low Stock' || p.status === 'Out of Stock').length;
 
@@ -186,12 +182,18 @@ const App: React.FC = () => {
     };
 
     const handleLogout = () => {
+        setCurrentUser(null);
         setPage('login');
         setSidebarOpen(false);
     };
 
+    const handleLogin = (user: User) => {
+        setCurrentUser(user);
+        setPage('dashboard');
+    };
+
     if (page === 'login') {
-        return <Login onLogin={() => setPage('dashboard')} />;
+        return <Login onLogin={handleLogin} />;
     }
 
     return (
