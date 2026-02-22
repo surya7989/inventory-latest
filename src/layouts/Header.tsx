@@ -33,6 +33,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, onToggleSideb
         reports: { title: 'Reports', subtitle: 'Generate and export business reports' },
         'online-store': { title: 'Online Store Management', subtitle: 'Manage your digital storefront and orders' },
         storefront: { title: 'Nexarats Storefront', subtitle: 'Customer-facing ordering portal' },
+        'admin-access': { title: 'Admin Access', subtitle: 'Manage system administrators and permissions' },
         login: { title: '', subtitle: '' },
     };
 
@@ -59,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, onToggleSideb
                 {activePage === 'dashboard' && (
                     <div className="hidden md:flex items-center gap-3 mr-1">
                         <div className="flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 rounded-full">
-                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none">Access: Admin</span>
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none">Access: {user?.role || 'Admin'}</span>
                         </div>
                         <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full">
                             <Calendar className="w-3 h-3 text-slate-400" />

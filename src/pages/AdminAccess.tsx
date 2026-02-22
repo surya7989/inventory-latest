@@ -20,7 +20,10 @@ const ACCESS_MODULES = [
     { id: 'customers', label: 'Customer Relations' },
     { id: 'vendors', label: 'Vendor Management' },
     { id: 'analytics', label: 'Business Analytics' },
-    { id: 'settings', label: 'System Settings' }
+    { id: 'reports', label: 'Business Reports' },
+    { id: 'online-store', label: 'Online Store' },
+    { id: 'settings', label: 'System Settings' },
+    { id: 'admin-access', label: 'Admin Access' }
 ];
 
 const AdminAccess: React.FC = () => {
@@ -28,6 +31,14 @@ const AdminAccess: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+
+    const switchUserView = (user: AdminUser) => {
+        const email = encodeURIComponent(user.email);
+        const password = encodeURIComponent(user.password || '');
+        const name = encodeURIComponent(user.name);
+        const role = encodeURIComponent(user.role);
+        window.open(`${window.location.origin}${window.location.pathname}?view_creds=true&login_email=${email}&login_password=${password}&name=${name}&role=${role}`, '_blank');
+    };
 
     // New User Form State
     const [newUser, setNewUser] = useState<{
@@ -81,13 +92,23 @@ const AdminAccess: React.FC = () => {
         setIsModalOpen(false);
     };
 
-    const togglePermission = (moduleId: string) => {
-        setNewUser(prev => ({
-            ...prev,
-            permissions: prev.permissions.includes(moduleId)
-                ? prev.permissions.filter(id => id !== moduleId)
-                : [...prev.permissions, moduleId]
-        }));
+    const togglePermission = (moduleId: string, isDraft: boolean = true) => {
+        if (isDraft) {
+            setNewUser(prev => ({
+                ...prev,
+                permissions: prev.permissions.includes(moduleId)
+                    ? prev.permissions.filter(id => id !== moduleId)
+                    : [...prev.permissions, moduleId]
+            }));
+        } else if (editingUser) {
+            const currentPerms = editingUser.permissions || [];
+            setEditingUser({
+                ...editingUser,
+                permissions: currentPerms.includes(moduleId)
+                    ? currentPerms.filter(id => id !== moduleId)
+                    : [...currentPerms, moduleId]
+            });
+        }
     };
 
     const toggleStatus = (id: string) => {
@@ -214,6 +235,13 @@ const AdminAccess: React.FC = () => {
                                     <td className="px-8 py-6 text-right">
                                         <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
+                                                onClick={() => switchUserView(item)}
+                                                className="p-2 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-all"
+                                                title="Preview this user's view"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button
                                                 onClick={() => setEditingUser(item)}
                                                 className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"
                                             >
@@ -226,7 +254,6 @@ const AdminAccess: React.FC = () => {
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <button className="p-2 text-slate-400 group-hover:hidden"><MoreVertical className="w-4 h-4" /></button>
                                     </td>
                                 </tr>
                             )) : (
@@ -302,10 +329,12 @@ const AdminAccess: React.FC = () => {
                                             value={newUser.role}
                                             onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                                         >
+                                            <option>Super Admin</option>
                                             <option>Admin</option>
                                             <option>Manager</option>
                                             <option>Accountant</option>
                                             <option>Staff</option>
+                                            <option>Delivery Agent</option>
                                         </select>
                                     </div>
                                 </div>
@@ -327,7 +356,7 @@ const AdminAccess: React.FC = () => {
                                                     type="checkbox"
                                                     className="sr-only peer"
                                                     checked={newUser.permissions.includes(module.id)}
-                                                    onChange={() => togglePermission(module.id)}
+                                                    onChange={() => togglePermission(module.id, true)}
                                                 />
                                                 <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-600"></div>
                                             </div>
@@ -390,7 +419,48 @@ const AdminAccess: React.FC = () => {
                                         <option>Admin</option>
                                         <option>Manager</option>
                                         <option>Accountant</option>
+                                        <option>Staff</option>
+                                        <option>Delivery Agent</option>
                                     </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Update Password</label>
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            className="w-full p-4 pl-12 bg-slate-50 border border-slate-100 rounded-2xl focus:border-red-500 outline-none text-sm font-black tracking-widest"
+                                            value={editingUser.password || ''}
+                                            onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+                                        />
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <button
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                    <label className="text-[10px] font-black text-red-600 uppercase tracking-widest block">Update Permissions</label>
+                                    <div className="grid grid-cols-1 gap-2 max-h-[250px] overflow-y-auto pr-2 vyapar-scrollbar">
+                                        {ACCESS_MODULES.map((module) => (
+                                            <label key={module.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer hover:border-red-200 transition-all group">
+                                                <span className="text-[10px] font-bold text-slate-600 group-hover:text-red-600 uppercase">{module.label}</span>
+                                                <div className="relative inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="sr-only peer"
+                                                        checked={(editingUser.permissions || []).includes(module.id)}
+                                                        onChange={() => togglePermission(module.id, false)}
+                                                    />
+                                                    <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-600"></div>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>

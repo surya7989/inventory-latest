@@ -13,6 +13,7 @@ import OnlineStore from './pages/OnlineStore';
 import Storefront from './pages/Storefront';
 import Login from './pages/Login';
 import AdminAccess from './pages/AdminAccess';
+import { useSessionStorage } from './hooks/useSessionStorage';
 
 
 import { Page, Product, Customer, Vendor, CartItem, Transaction, PurchaseOrder, User, PreBooking, OrderStatus } from './types';
@@ -21,23 +22,62 @@ import { DEFAULT_PRODUCTS, DEFAULT_CUSTOMERS, DEFAULT_VENDORS } from './data/moc
 import { useLocalStorage } from './hooks/useLocalStorage';
 
 const App: React.FC = () => {
-    const [page, setPage] = useLocalStorage<Page>('inv_page', 'login');
+    const [page, setPage] = useSessionStorage<Page>('inv_page', 'login');
     const [products, setProducts] = useLocalStorage<Product[]>('inv_products', []);
     const [customers, setCustomers] = useLocalStorage<Customer[]>('inv_customers', []);
     const [vendors, setVendors] = useLocalStorage<Vendor[]>('inv_vendors', []);
     const [transactions, setTransactions] = useLocalStorage<Transaction[]>('inv_transactions', []);
     const [purchases, setPurchases] = useLocalStorage<PurchaseOrder[]>('inv_purchases', []);
     const [preBookings, setPreBookings] = useLocalStorage<PreBooking[]>('inv_prebookings', []);
-    const [currentUser, setCurrentUser] = useLocalStorage<User | null>('inv_user', {
-        id: 'ADMIN-001',
-        name: 'Nexarats',
-
-        email: 'admin@nexarats.com',
-        role: 'Admin',
-        permissions: ['all']
-    });
+    const [currentUser, setCurrentUser] = useSessionStorage<User | null>('inv_user', null);
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const hasCredsParams = params.has('view_creds') || params.has('login_email');
+
+        if (hasCredsParams) {
+            // Force logout only in THIS tab for credential viewing
+            sessionStorage.removeItem('inv_user');
+            setCurrentUser(null);
+            setPage('login');
+        }
+    }, []);
+
+    // Sync currentUser with latest admin changes from localStorage
+    useEffect(() => {
+        if (!currentUser || currentUser.role === 'Super Admin') return;
+
+        const syncUser = () => {
+            const storedAdminsStr = localStorage.getItem('nx_admin_users');
+            if (storedAdminsStr) {
+                const storedAdmins = JSON.parse(storedAdminsStr);
+                const updatedData = storedAdmins.find((u: any) => u.id === currentUser.id);
+                if (updatedData) {
+                    if (JSON.stringify(updatedData.permissions) !== JSON.stringify(currentUser.permissions) ||
+                        updatedData.role !== currentUser.role) {
+                        setCurrentUser({
+                            ...currentUser,
+                            role: updatedData.role,
+                            permissions: updatedData.permissions || ['dashboard']
+                        });
+                    }
+                } else {
+                    // Force logout if user was deleted
+                    handleLogout();
+                    alert('Access Revoked: Your administrator account has been removed.');
+                }
+            }
+        };
+
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'nx_admin_users') syncUser();
+        };
+
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, [currentUser, setCurrentUser]);
 
     useEffect(() => {
         document.title = `${currentUser?.name || 'Nexarats'}INV - Inventory Control`;
@@ -186,6 +226,8 @@ const App: React.FC = () => {
     };
 
     const handleLogout = () => {
+        sessionStorage.removeItem('inv_user');
+        setCurrentUser(null);
         setPage('login');
         setSidebarOpen(false);
     };

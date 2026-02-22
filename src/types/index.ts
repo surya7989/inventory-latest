@@ -82,7 +82,7 @@ export interface PurchaseOrder {
 }
 
 // Phase 2: RBAC Types
-export type UserRole = 'Admin' | 'Manager' | 'Staff' | 'Accountant' | 'Delivery Agent';
+export type UserRole = 'Super Admin' | 'Admin' | 'Manager' | 'Staff' | 'Accountant' | 'Delivery Agent';
 
 export interface User {
     id: string;

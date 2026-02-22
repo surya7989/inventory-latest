@@ -104,6 +104,33 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [email, setEmail] = useState('admin@nexarats.com');
     const [password, setPassword] = useState('admin123');
     const [error, setError] = useState('');
+    const [viewCreds, setViewCreds] = useState<{ name: string; email: string; pass: string; role: string } | null>(null);
+
+    React.useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlEmail = params.get('login_email');
+        const urlPassword = params.get('login_password');
+        const isViewMode = params.get('view_creds') === 'true';
+        const urlName = params.get('name');
+        const urlRole = params.get('role');
+
+        if (isViewMode && urlEmail && urlPassword) {
+            setViewCreds({
+                name: decodeURIComponent(urlName || 'Administrator'),
+                email: decodeURIComponent(urlEmail),
+                pass: decodeURIComponent(urlPassword),
+                role: decodeURIComponent(urlRole || 'Admin')
+            });
+        } else {
+            if (urlEmail) setEmail(decodeURIComponent(urlEmail));
+            if (urlPassword) setPassword(decodeURIComponent(urlPassword));
+        }
+
+        // Optional: clear params from URL after reading them
+        if (urlEmail || urlPassword || isViewMode) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -179,7 +206,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
             </div>
 
-            {/* ── Right panel: Login form ── */}
+            {/* ── Right panel: Login form OR Credential Card ── */}
             <div className="w-full md:w-[55%] flex items-center justify-center p-8 lg:p-16 bg-white">
                 <div className="w-full max-w-sm">
                     {/* Icon */}
@@ -189,89 +216,127 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         </div>
                     </div>
 
-                    <h2 className="text-3xl font-bold text-gray-900 text-center mb-2">
-                        Welcome Back
-                    </h2>
-                    <p className="text-gray-500 text-center mb-10 font-medium">Sign in to your account</p>
+                    {viewCreds ? (
+                        <div className="animate-in fade-in zoom-in duration-500">
+                            <h2 className="text-3xl font-bold text-gray-900 text-center mb-2">
+                                Access Authorized
+                            </h2>
+                            <p className="text-gray-500 text-center mb-10 font-medium uppercase tracking-widest text-xs">Login Credentials Slip</p>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="bg-slate-50 rounded-3xl p-8 border-2 border-dashed border-slate-200 relative">
+                                <div className="absolute top-4 right-4 bg-emerald-500 text-white text-[10px] font-black px-2 py-1 rounded uppercase">Valid</div>
 
-                        {error && (
-                            <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <XCircle className="w-4 h-4" />
-                                <span className="text-xs font-black uppercase tracking-widest">{error}</span>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Authorized User</label>
+                                        <p className="text-lg font-bold text-slate-900">{viewCreds.name}</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Login ID (Email)</label>
+                                        <p className="text-lg font-mono font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">{viewCreds.email}</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Security Password</label>
+                                        <p className="text-lg font-mono font-bold text-slate-900 bg-white px-3 py-1.5 rounded-lg border border-slate-200">{viewCreds.pass}</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Designated Role</label>
+                                        <p className="text-xs font-black text-white bg-slate-900 px-3 py-1 rounded-full w-fit uppercase tracking-wider">{viewCreds.role}</p>
+                                    </div>
+                                </div>
                             </div>
-                        )}
 
-                        {/* Username / Email */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Username or Email
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="admin@nexarats.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
-                            />
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Password
-                            </label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
-                            />
-                        </div>
-
-                        {/* Remember Me Only */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                id="remember"
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={() => setRememberMe(!rememberMe)}
-                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <label htmlFor="remember" className="text-sm font-semibold text-gray-600 cursor-pointer select-none">
-                                Remember me
-                            </label>
-                        </div>
-
-                        {/* Login button */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-blue-500/25 disabled:opacity-70 flex items-center justify-center gap-3 active:scale-[0.98]"
-                        >
-                            {loading ? (
-                                <>
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                    </svg>
-                                    Signing in...
-                                </>
-                            ) : 'Login'}
-                        </button>
-                    </form>
-
-                    {/* Create account link - RESTORED */}
-                    <div className="mt-8 text-center">
-                        <p className="text-gray-600 font-medium">
-                            Don't have an account?{' '}
-                            <button className="text-blue-600 font-bold hover:underline ml-1">
-                                Create Account
+                            <button
+                                onClick={() => {
+                                    setEmail(viewCreds.email);
+                                    setPassword(viewCreds.pass);
+                                    setViewCreds(null);
+                                }}
+                                className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-3 active:scale-[0.98]"
+                            >
+                                Proceed to Login
                             </button>
-                        </p>
-                    </div>
+                        </div>
+                    ) : (
+                        <>
+                            <h2 className="text-3xl font-bold text-gray-900 text-center mb-2">
+                                Welcome Back
+                            </h2>
+                            <p className="text-gray-500 text-center mb-10 font-medium">Sign in to your account</p>
+
+                            <form onSubmit={handleSubmit} className="space-y-6">
+
+                                {error && (
+                                    <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <XCircle className="w-4 h-4" />
+                                        <span className="text-xs font-black uppercase tracking-widest">{error}</span>
+                                    </div>
+                                )}
+
+                                {/* Username / Email */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Username or Email
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="admin@nexarats.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
+                                    />
+                                </div>
+
+                                {/* Password */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
+                                    />
+                                </div>
+
+                                {/* Remember Me Only */}
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        id="remember"
+                                        type="checkbox"
+                                        checked={rememberMe}
+                                        onChange={() => setRememberMe(!rememberMe)}
+                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="remember" className="text-sm font-semibold text-gray-600 cursor-pointer select-none">
+                                        Remember me
+                                    </label>
+                                </div>
+
+                                {/* Login button */}
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-blue-500/25 disabled:opacity-70 flex items-center justify-center gap-3 active:scale-[0.98]"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                            Signing in...
+                                        </>
+                                    ) : 'Login'}
+                                </button>
+                            </form>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

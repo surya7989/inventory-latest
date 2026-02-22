@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    LayoutDashboard, Receipt, Package, Users, Truck, BarChart3, Settings, ShoppingCart, LogOut, X, ShieldCheck
+    LayoutDashboard, Receipt, Package, Users, Truck, BarChart3, Settings, ShoppingCart, LogOut, X, ShieldCheck, FileText
 } from 'lucide-react';
 import { Page, User } from '../types';
 
@@ -19,25 +19,27 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, isOpen, onClose, user }) => {
     const [profile] = useLocalStorage('inv_admin_profile', {
         name: user?.name || 'Admin',
-        role: user?.role || 'Administrator',
+        role: user?.role || 'Admin',
         avatar: `https://ui-avatars.com/api/?name=${user?.name || 'Admin'}&background=random`
     });
 
 
     const menuItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Manager', 'Staff', 'Accountant', 'Delivery Agent'] },
-        { id: 'billing', icon: Receipt, label: 'Billing / POS', roles: ['Admin', 'Manager', 'Staff'] },
-        { id: 'inventory', icon: Package, label: 'Inventory', roles: ['Admin', 'Manager', 'Staff'] },
-        { id: 'customers', icon: Users, label: 'Customers', roles: ['Admin', 'Manager', 'Accountant'] },
-        { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Admin', 'Manager'] },
-        { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Admin', 'Manager'] },
-        { id: 'settings', icon: Settings, label: 'Settings', roles: ['Admin'] },
-        { id: 'admin-access', icon: ShieldCheck, label: 'Admin Access', roles: ['Admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Super Admin', 'Admin', 'Manager', 'Staff', 'Accountant', 'Delivery Agent'] },
+        { id: 'billing', icon: Receipt, label: 'Billing / POS', roles: ['Super Admin', 'Admin', 'Manager', 'Staff'] },
+        { id: 'inventory', icon: Package, label: 'Inventory', roles: ['Super Admin', 'Admin', 'Manager', 'Staff'] },
+        { id: 'customers', icon: Users, label: 'Customers', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
+        { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Super Admin', 'Admin', 'Manager'] },
+        { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Super Admin', 'Admin', 'Manager'] },
+        { id: 'reports', icon: FileText, label: 'Reports', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
+        { id: 'settings', icon: Settings, label: 'Settings', roles: ['Super Admin', 'Admin'] },
+        { id: 'admin-access', icon: ShieldCheck, label: 'Admin Access', roles: ['Super Admin', 'Admin'] },
     ];
 
     const filteredMenuItems = menuItems.filter(item => {
-        if (!user) return true; // Default to show if no user (should not happen)
-        return item.roles.includes(user.role);
+        if (!user) return true;
+        if (user.role === 'Super Admin') return true;
+        return user.permissions?.includes(item.id) || user.permissions?.includes('all');
     });
 
 
@@ -90,18 +92,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
 
                 <div className="p-4 space-y-4">
                     {/* Online Store Promo Card */}
-                    <div
-                        onClick={() => handlePageChange('online-store')}
-                        className={`rounded-2xl p-4 relative overflow-hidden group cursor-pointer transition-all duration-300 ${activePage === 'online-store' ? 'bg-[#EF4444] shadow-lg shadow-red-100' : 'bg-[#2563EB] shadow-lg shadow-blue-100'}`}
-                    >
-                        <div className="relative z-10 flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                                <ShoppingCart className="w-3.5 h-3.5 text-white" />
+                    {(user?.role === 'Super Admin' || user?.permissions?.includes('online-store') || user?.permissions?.includes('all')) && (
+                        <div
+                            onClick={() => handlePageChange('online-store')}
+                            className={`rounded-2xl p-4 relative overflow-hidden group cursor-pointer transition-all duration-300 ${activePage === 'online-store' ? 'bg-[#EF4444] shadow-lg shadow-red-100' : 'bg-[#2563EB] shadow-lg shadow-blue-100'}`}
+                        >
+                            <div className="relative z-10 flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <ShoppingCart className="w-3.5 h-3.5 text-white" />
+                                </div>
+                                <span className="font-black text-sm text-white">Online Store</span>
                             </div>
-                            <span className="font-black text-sm text-white">Online Store</span>
+                            <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
                         </div>
-                        <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
-                    </div>
+                    )}
 
                     {/* User Profile & Logout Button */}
                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
