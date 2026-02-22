@@ -10,6 +10,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/settings/Settings';
 import Reports from './pages/Reports';
 import OnlineStore from './pages/OnlineStore';
+import Purchases from './pages/Purchases';
 import Storefront from './pages/Storefront';
 import Login from './pages/Login';
 import AdminAccess from './pages/AdminAccess';
@@ -281,6 +282,7 @@ const App: React.FC = () => {
                     {page === 'inventory' && <Inventory products={products} onUpdate={setProducts} />}
                     {page === 'customers' && <Customers customers={customers} transactions={transactions} onUpdate={setCustomers} onDelete={handleDeleteCustomer} />}
                     {page === 'vendors' && <Vendors vendors={vendors} purchases={purchases} onUpdate={setVendors} onDelete={handleDeleteVendor} />}
+                    {page === 'purchases' && <Purchases />}
                     {page === 'analytics' && <Analytics products={products} customers={customers} vendors={vendors} transactions={transactions} />}
                     {page === 'settings' && <Settings />}
                     {page === 'reports' && <Reports />}

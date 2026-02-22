@@ -1,4 +1,4 @@
-export type Page = 'login' | 'dashboard' | 'billing' | 'inventory' | 'customers' | 'vendors' | 'expenses' | 'analytics' | 'settings' | 'reports' | 'online-store' | 'storefront' | 'admin-access';
+export type Page = 'login' | 'dashboard' | 'billing' | 'inventory' | 'customers' | 'vendors' | 'purchases' | 'expenses' | 'analytics' | 'settings' | 'reports' | 'online-store' | 'storefront' | 'admin-access';
 
 export interface Product {
     id: string;
