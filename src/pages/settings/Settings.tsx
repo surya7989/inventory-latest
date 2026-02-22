@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Bell, FileCheck, MessageSquare, Shield, Palette, Clock, Info, HelpCircle, Save, LogOut, Trash2 } from 'lucide-react';
+import { User, Bell, FileCheck, MessageSquare, Shield, Palette, Clock, Info, HelpCircle, Save, LogOut, Trash2, Key } from 'lucide-react';
 import ProfileSettings from './ProfileSettings';
 import NotificationSettings from './NotificationSettings';
 import GSTSettings from './GSTSettings';
@@ -9,6 +9,7 @@ import InvoiceThemes from './InvoiceThemes';
 import RemindersSettings from './RemindersSettings';
 import AccountInfo from './AccountInfo';
 import HelpSupport from './HelpSupport';
+import ApiKeys from './ApiKeys';
 
 const Settings: React.FC = () => {
     const [activeTab, setActiveTab] = useState('profile');
@@ -22,6 +23,7 @@ const Settings: React.FC = () => {
         { id: 'invoice', icon: Palette, label: 'Invoice Themes' },
         { id: 'reminders', icon: Clock, label: 'Reminders' },
         { id: 'account', icon: Info, label: 'Account Info' },
+        { id: 'apikeys', icon: Key, label: 'API Keys' },
         { id: 'help', icon: HelpCircle, label: 'Help & Support' },
     ];
 
@@ -35,6 +37,7 @@ const Settings: React.FC = () => {
             case 'invoice': return <InvoiceThemes />;
             case 'reminders': return <RemindersSettings />;
             case 'account': return <AccountInfo />;
+            case 'apikeys': return <ApiKeys />;
             case 'help': return <HelpSupport />;
             default: return null;
         }
@@ -50,8 +53,8 @@ const Settings: React.FC = () => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center space-x-3 px-4 py-3 rounded-sm transition-all whitespace-nowrap shrink-0 ${activeTab === tab.id
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'text-slate-500 hover:bg-slate-50'
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-slate-500 hover:bg-slate-50'
                                 }`}
                         >
                             <tab.icon className="w-4 h-4 shrink-0" />

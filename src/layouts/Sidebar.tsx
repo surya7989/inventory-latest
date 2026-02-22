@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-    LayoutDashboard, Receipt, Package, Users, Truck, BarChart3, Settings, ShoppingCart, LogOut, X, ShieldCheck, FileText
-} from 'lucide-react';
+import { LayoutDashboard, Receipt, Package, Users, Truck, BarChart3, Settings, ShoppingCart, LogOut, X, ShieldCheck, FileText, Wallet } from 'lucide-react';
 import { Page, User } from '../types';
 
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -30,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
         { id: 'inventory', icon: Package, label: 'Inventory', roles: ['Super Admin', 'Admin', 'Manager', 'Staff'] },
         { id: 'customers', icon: Users, label: 'Customers', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
         { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Super Admin', 'Admin', 'Manager'] },
+        { id: 'expenses', icon: Wallet, label: 'Expenses', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
         { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Super Admin', 'Admin', 'Manager'] },
         { id: 'reports', icon: FileText, label: 'Reports', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
         { id: 'settings', icon: Settings, label: 'Settings', roles: ['Super Admin', 'Admin'] },

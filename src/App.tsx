@@ -13,6 +13,7 @@ import OnlineStore from './pages/OnlineStore';
 import Storefront from './pages/Storefront';
 import Login from './pages/Login';
 import AdminAccess from './pages/AdminAccess';
+import Expenses from './pages/Expenses';
 import { useSessionStorage } from './hooks/useSessionStorage';
 
 
@@ -293,6 +294,7 @@ const App: React.FC = () => {
                             onUpdatePreBooking={updatePreBookingStatus}
                         />
                     )}
+                    {page === 'expenses' && <Expenses />}
                     {page === 'admin-access' && <AdminAccess />}
                     {page === 'storefront' && (
                         <Storefront
