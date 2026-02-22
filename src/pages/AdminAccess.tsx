@@ -16,15 +16,28 @@ interface AdminUser {
 const ACCESS_MODULES = [
     { id: 'dashboard', label: 'Dashboard Overview' },
     { id: 'billing', label: 'Billing & POS' },
-    { id: 'inventory', label: 'Inventory Control' },
+    { id: 'inventory', label: 'Inventory & Products' },
     { id: 'customers', label: 'Customer Relations' },
     { id: 'vendors', label: 'Vendor Management' },
+    { id: 'purchases', label: 'Purchase Orders' },
+    { id: 'expenses', label: 'Expense Tracking' },
+    { id: 'payments', label: 'Payment Records' },
     { id: 'analytics', label: 'Business Analytics' },
-    { id: 'reports', label: 'Business Reports' },
-    { id: 'online-store', label: 'Online Store' },
+    { id: 'reports', icon: History, label: 'Business Reports' },
+    { id: 'audit', label: 'Audit Logs' },
     { id: 'settings', label: 'System Settings' },
-    { id: 'admin-access', label: 'Admin Access' }
+    { id: 'admin-access', label: 'Admin Access Control' }
 ];
+
+const PERMISSION_MATRIX: Record<string, string[]> = {
+    'Super Admin': ACCESS_MODULES.map(m => m.id),
+    'Admin': ACCESS_MODULES.map(m => m.id),
+    'Manager': ['dashboard', 'billing', 'inventory', 'customers', 'vendors', 'purchases', 'expenses', 'payments', 'analytics', 'reports', 'audit', 'admin-access'],
+    'Cashier': ['dashboard', 'billing', 'customers', 'payments', 'reports', 'inventory'],
+    'Staff': ['dashboard', 'inventory', 'customers', 'billing', 'reports'],
+    'Accountant': ['dashboard', 'reports', 'expenses', 'purchases', 'billing', 'payments'],
+    'Delivery Agent': ['dashboard', 'customers']
+};
 
 const AdminAccess: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -327,11 +340,19 @@ const AdminAccess: React.FC = () => {
                                         <select
                                             className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl focus:border-red-500 outline-none text-sm font-black appearance-none"
                                             value={newUser.role}
-                                            onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                            onChange={(e) => {
+                                                const newRole = e.target.value;
+                                                setNewUser({
+                                                    ...newUser,
+                                                    role: newRole,
+                                                    permissions: PERMISSION_MATRIX[newRole] || ['dashboard']
+                                                });
+                                            }}
                                         >
                                             <option>Super Admin</option>
                                             <option>Admin</option>
                                             <option>Manager</option>
+                                            <option>Cashier</option>
                                             <option>Accountant</option>
                                             <option>Staff</option>
                                             <option>Delivery Agent</option>
@@ -413,11 +434,19 @@ const AdminAccess: React.FC = () => {
                                     <select
                                         className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:border-red-500 outline-none text-sm font-black"
                                         value={editingUser.role}
-                                        onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                                        onChange={(e) => {
+                                            const newRole = e.target.value;
+                                            setEditingUser({
+                                                ...editingUser,
+                                                role: newRole,
+                                                permissions: PERMISSION_MATRIX[newRole] || editingUser.permissions
+                                            });
+                                        }}
                                     >
                                         <option>Super Admin</option>
                                         <option>Admin</option>
                                         <option>Manager</option>
+                                        <option>Cashier</option>
                                         <option>Accountant</option>
                                         <option>Staff</option>
                                         <option>Delivery Agent</option>
