@@ -21,7 +21,7 @@ const GSTSettings: React.FC = () => {
             particleCount: 80,
             spread: 60,
             origin: { y: 0.6 },
-            colors: ['#2563EB', '#10B981']
+            colors: ['#0284C7', '#10B981']
         });
         setTimeout(() => setSaved(false), 3000);
     };

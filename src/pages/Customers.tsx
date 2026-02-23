@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Filter, Download, Plus, Edit2, Trash2, Mail, Phone, X, FileSpreadsheet, FileText, Check, FileDown, ArrowDownToLine, ArrowLeft, MoreVertical, Calendar, Clock, CreditCard, ShieldCheck, MapPin, Printer, Send, Users, Globe, Eye } from 'lucide-react';
+import { Search, Filter, Download, Plus, Edit2, Trash2, Mail, Phone, X, FileSpreadsheet, FileText, Check, FileDown, ArrowDownToLine, ArrowLeft, MoreVertical, Calendar, Clock, CreditCard, ShieldCheck, MapPin, Printer, Send, Users, Globe, Eye, Wallet, Coins } from 'lucide-react';
 
-import { Customer, Transaction } from '../types';
+import { Customer, Transaction, User } from '../types';
 import Portal from '../components/Portal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import ThemedInvoice from '../components/ThemedInvoice';
@@ -11,10 +11,16 @@ interface CustomersProps {
     customers: Customer[];
     transactions: Transaction[];
     onUpdate: React.Dispatch<React.SetStateAction<Customer[]>>;
+    onUpdateTransactions?: React.Dispatch<React.SetStateAction<Transaction[]>>;
     onDelete?: (id: string) => void;
+    user?: User | null;
 }
 
-const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate, onDelete }) => {
+const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate, onUpdateTransactions, onDelete, user }) => {
+    const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['customers'] || 'none');
+    const isReadOnly = permissionLevel === 'read';
+    const canManageCustomers = permissionLevel === 'manage' || permissionLevel === 'cru';
+    const canDeleteCustomers = permissionLevel === 'manage' || permissionLevel === 'cru';
     const [search, setSearch] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -24,6 +30,11 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', totalPaid: '0', pending: '0' });
     const [historyType, setHistoryType] = useState<'offline' | 'online'>('offline');
     const [printingTransaction, setPrintingTransaction] = useState<Transaction | null>(null);
+    const [statusFilter, setStatusFilter] = useState<'All' | 'Paid' | 'Partial' | 'Unpaid'>('All');
+    const [showFilters, setShowFilters] = useState(false);
+    const [txnSearch, setTxnSearch] = useState('');
+    const [payingTransaction, setPayingTransaction] = useState<Transaction | null>(null);
+    const [paymentAmount, setPaymentAmount] = useState<string>('');
 
     // Theme Settings for Invoice
     const [adminProfile] = useLocalStorage('inv_admin_profile', {
@@ -43,19 +54,54 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
         }, 100);
     };
 
+    const handleRecordPayment = () => {
+        if (!payingTransaction || !onUpdateTransactions || !paymentAmount) return;
+        const amount = parseFloat(paymentAmount);
+        if (isNaN(amount) || amount <= 0) return;
+
+        onUpdateTransactions(prev => prev.map(t => {
+            if (t.id === payingTransaction.id) {
+                const newPaid = (t.paidAmount || 0) + amount;
+                return {
+                    ...t,
+                    paidAmount: newPaid,
+                    status: newPaid >= t.total ? 'Paid' : 'Partial'
+                };
+            }
+            return t;
+        }));
+
+        onUpdate(prev => prev.map(c => {
+            if (c.id === payingTransaction.customerId) {
+                return {
+                    ...c,
+                    totalPaid: c.totalPaid + amount,
+                    pending: Math.max(0, c.pending - amount),
+                    status: Math.max(0, c.pending - amount) === 0 ? 'Paid' : 'Partial'
+                };
+            }
+            return c;
+        }));
+
+        setPayingTransaction(null);
+        setPaymentAmount('');
+    };
+
 
     const filtered = customers.filter(c => {
         const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
             c.email.toLowerCase().includes(search.toLowerCase()) ||
             c.phone.includes(search);
 
-        // In Offline CRM mode, only show customers who have POS history (totalInvoices > 0)
-        // or the special WALK-IN customer
+        const matchesStatus = statusFilter === 'All' || c.status === statusFilter;
+
         if (historyType === 'offline') {
-            return matchesSearch && ((c.totalInvoices || 0) > 0 || c.id === 'WALK-IN');
+            return matchesSearch && matchesStatus && ((c.totalInvoices || 0) > 0 || c.id === 'WALK-IN');
         }
 
-        return matchesSearch;
+        // For Online Channel, show customers who have at least one online order
+        const hasOnlineOrders = transactions.some(t => t.customerId === c.id && t.source === 'online');
+        return matchesSearch && matchesStatus && hasOnlineOrders;
     });
 
 
@@ -79,6 +125,18 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
         else onUpdate(prev => prev.filter(c => c.id !== id));
     };
 
+    const handleBulkDelete = () => {
+        if (!canDeleteCustomers) return;
+        if (window.confirm(`Are you sure you want to delete ${selectedRows.length} selected customers? This will also remove their transaction history.`)) {
+            if (onDelete) {
+                selectedRows.forEach(id => onDelete(id));
+            } else {
+                onUpdate(prev => prev.filter(c => !selectedRows.includes(c.id)));
+            }
+            setSelectedRows([]);
+        }
+    };
+
     const toggleSelectAll = () => {
         if (selectedRows.length === filtered.length) {
             setSelectedRows([]);
@@ -94,24 +152,40 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
     };
 
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+    const customerTransactions = transactions.filter(t => t.customerId === selectedCustomerId);
+    const displayedTransactions = customerTransactions
+        .filter(t => historyType === 'offline' ? t.source !== 'online' : t.source === 'online')
+        .filter(t => t.id.toLowerCase().includes(txnSearch.toLowerCase()));
 
-    if (selectedCustomerId && selectedCustomer) {
-        return (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Profile Header */}
-                <div className="bg-white p-6 lg:p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6 relative overflow-hidden">
-                    <button
-                        onClick={() => setSelectedCustomerId(null)}
-                        className="absolute top-6 left-6 p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm transition-all"
-                    >
-                        <ArrowLeft className="w-3.5 h-3.5" />
-                    </button>
+    // Dynamic metrics for the details view - Scoped to the current view (Offline/Online)
+    const dynamicTotalPaid = displayedTransactions.reduce((sum, t) => sum + (t.paidAmount !== undefined ? t.paidAmount : t.total || 0), 0);
+    const dynamicTotalInvoices = displayedTransactions.length;
+    // For pending, we show the global pending for the customer
+    const dynamicPending = selectedCustomer?.pending || 0;
 
-                    <div className="w-20 h-20 bg-blue-50 rounded flex items-center justify-center font-black text-blue-600 text-3xl shrink-0 mt-8 md:mt-0 uppercase">
+    const pageContent = (selectedCustomerId && selectedCustomer) ? (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Profile Header */}
+            <div className="bg-white p-6 lg:p-8 rounded-[32px] border border-slate-100 shadow-sm">
+                {/* Back button row */}
+                <button
+                    onClick={() => setSelectedCustomerId(null)}
+                    className="mb-5 flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all group"
+                    title="Back to customers"
+                >
+                    <span className="w-8 h-8 flex items-center justify-center bg-slate-100 group-hover:bg-slate-200 rounded-full transition-all shadow-sm">
+                        <ArrowLeft className="w-4 h-4" />
+                    </span>
+                    <span className="text-xs font-bold uppercase tracking-widest">Back</span>
+                </button>
+
+                {/* Avatar + Info row */}
+                <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+                    <div className="w-20 h-20 bg-blue-50 rounded flex items-center justify-center font-black text-blue-600 text-3xl shrink-0 uppercase">
                         {selectedCustomer.name.charAt(0)}
                     </div>
 
-                    <div className="flex-1 text-center md:text-left mt-8 md:mt-0">
+                    <div className="flex-1 text-center md:text-left">
                         <div className="flex flex-col md:flex-row md:items-center md:space-x-4 mb-2">
                             <h2 className="text-3xl font-black text-slate-900">{selectedCustomer.name}</h2>
                             <span className={`w-fit mx-auto md:mx-0 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedCustomer.status === 'Paid' ? 'bg-green-100 text-green-600' :
@@ -142,208 +216,233 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                             )}
                         </div>
                     </div>
-
                 </div>
+            </div>
 
-                {/* Metrics Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                    {[
-                        { label: 'Total Received', value: `₹${selectedCustomer.totalPaid.toLocaleString()}`, icon: CreditCard, color: 'text-green-600', bg: 'bg-green-50' },
-                        { label: 'Pending Amount', value: `₹${selectedCustomer.pending.toLocaleString()}`, icon: Clock, color: 'text-red-500', bg: 'bg-red-50' },
-                        { label: 'Total Invoices', value: (selectedCustomer.totalInvoices || 0).toString(), icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-                        { label: 'Last Transaction', value: selectedCustomer.lastTransaction || 'No transactions', icon: Calendar, color: 'text-slate-600', bg: 'bg-slate-50' },
-                    ].map((m, i) => (
-                        <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">{m.label}</p>
-                            <div className="flex items-end justify-between">
-                                <h3 className={`text-2xl font-black ${m.color}`}>{m.value}</h3>
-                                <div className={`p-2.5 rounded ${m.bg}`}>
-                                    <m.icon className={`w-4 h-4 ${m.color}`} />
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-                    {/* Transactions Table Section */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
-                            <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
-                                <div className="flex items-center gap-6">
-                                    <h3 className="text-xl font-black text-slate-900">
-                                        {historyType === 'offline' ? 'Offline Billing History' : 'Online Order History'}
-                                    </h3>
-                                    <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${historyType === 'offline' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
-                                        {historyType === 'offline' ? 'POS CRM' : 'Channel Sync'}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center space-x-4 w-full md:w-auto">
-
-                                    <div className="relative flex-1 md:w-64">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                        <input placeholder="Search transactions..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-sm text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                    <button className="p-3 bg-slate-50 text-slate-400 rounded-sm hover:bg-slate-100 transition-all">
-                                        <Download className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                                        <tr>
-                                            <th className="px-8 py-5">Invoice ID</th>
-                                            <th className="px-8 py-5">Date</th>
-                                            <th className="px-8 py-5">Amount</th>
-                                            <th className="px-8 py-5">{historyType === 'offline' ? 'Payment Status' : 'Order Status'}</th>
-                                            {historyType === 'online' && <th className="px-8 py-5">Delivery Details</th>}
-                                            <th className="px-8 py-5">Actions</th>
-                                        </tr>
-
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50">
-                                        {transactions.filter(t => t.customerId === selectedCustomerId && (historyType === 'offline' ? t.source !== 'online' : t.source === 'online')).length === 0 ? (
-                                            <tr>
-                                                <td colSpan={6} className="px-8 py-12 text-center text-slate-400 font-bold">No {historyType} transactions found for this customer.</td>
-                                            </tr>
-                                        ) : (
-                                            transactions.filter(t => t.customerId === selectedCustomerId && (historyType === 'offline' ? t.source !== 'online' : t.source === 'online')).map((t, i) => (
-                                                <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className={`w-1.5 h-1.5 rounded-full ${t.source === 'online' ? 'bg-orange-500' : 'bg-blue-500'}`} />
-                                                            <span className="font-bold text-sm text-slate-900">{t.id}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-6 text-sm font-bold text-slate-500">{t.date}</td>
-                                                    <td className="px-8 py-6 text-sm font-black text-slate-900">₹{t.total.toLocaleString()}</td>
-                                                    <td className="px-8 py-6 text-sm">
-                                                        {historyType === 'offline' ? (
-                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${t.status === 'Paid' ? 'bg-green-100 text-green-600' :
-                                                                t.status === 'Partial' ? 'bg-orange-100 text-orange-600' :
-                                                                    'bg-red-100 text-red-600'
-                                                                }`}>
-                                                                {t.status}
-                                                            </span>
-                                                        ) : (
-                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${t.orderStatus === 'Delivered' ? 'bg-emerald-100 text-emerald-600' :
-                                                                t.orderStatus === 'Shipped' ? 'bg-purple-100 text-purple-600' :
-                                                                    t.orderStatus === 'Pending' ? 'bg-orange-100 text-orange-600' :
-                                                                        'bg-blue-100 text-blue-600'
-                                                                }`}>
-                                                                {t.orderStatus || 'Pending'}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    {historyType === 'online' && (
-                                                        <td className="px-8 py-6 text-[10px] font-bold text-slate-400 max-w-[150px] truncate">
-                                                            {selectedCustomer.address || 'Standard Delivery'}
-                                                        </td>
-                                                    )}
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center gap-2">
-                                                            {historyType === 'online' ? (
-                                                                <>
-                                                                    <button
-                                                                        onClick={() => handlePrintInvoice(t)}
-                                                                        className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"
-                                                                        title="View Invoice"
-                                                                    >
-                                                                        <Printer className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handlePrintInvoice(t)}
-                                                                        className="p-2 bg-slate-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-all"
-                                                                        title="Download"
-                                                                    >
-                                                                        <Download className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                </>
-                                                            ) : (
-                                                                <button className="p-2 text-slate-400 hover:text-blue-600 transition-all">
-                                                                    <MoreVertical className="w-3.5 h-3.5" />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-
-                                                </tr>
-                                            ))
-                                        )}
-
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div className="p-8 mt-auto border-t border-slate-50 flex justify-between items-center">
-                                <p className="text-xs font-bold text-slate-400">Showing 1 to 6 of 6 entries</p>
-                                <div className="flex space-x-2">
-                                    <button className="w-10 h-10 flex items-center justify-center rounded-sm bg-slate-50 text-slate-400 font-bold hover:bg-slate-100 transition-all border border-slate-100">1</button>
-                                </div>
+            {/* Metrics Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                {[
+                    { label: 'Total Received', value: `₹${dynamicTotalPaid.toLocaleString()}`, icon: CreditCard, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Pending Amount', value: `₹${dynamicPending.toLocaleString()}`, icon: Clock, color: 'text-red-500', bg: 'bg-red-50' },
+                    { label: 'Total Invoices', value: dynamicTotalInvoices.toString(), icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Last Transaction', value: selectedCustomer.lastTransaction || 'No transactions', icon: Calendar, color: 'text-slate-600', bg: 'bg-slate-50' },
+                ].map((m, i) => (
+                    <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">{m.label}</p>
+                        <div className="flex items-end justify-between">
+                            <h3 className={`text-2xl font-black ${m.color}`}>{m.value}</h3>
+                            <div className={`p-2.5 rounded ${m.bg}`}>
+                                <m.icon className={`w-4 h-4 ${m.color}`} />
                             </div>
                         </div>
                     </div>
+                ))}
+            </div>
 
-                    {/* Sidebar Section */}
-                    <div className="space-y-6">
-                        {/* Contact Information */}
-                        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-8">
-                            <div>
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Contact Information</h4>
-                                <div className="space-y-6">
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 mb-1">Customer ID</p>
-                                        <p className="text-sm font-black text-slate-900">{selectedCustomer.id}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 mb-1">Phone Number</p>
-                                        <p className="text-sm font-bold text-slate-900">{selectedCustomer.phone}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 mb-1">Email</p>
-                                        <p className="text-sm font-bold text-slate-900">{selectedCustomer.email}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 mb-1">Address</p>
-                                        <p className="text-sm font-bold text-slate-900 leading-relaxed">
-                                            123, MG Road, Bangalore<br />Karnataka - 560001
-                                        </p>
-                                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                {/* Transactions Table Section */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
+                        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div className="flex items-center gap-6">
+                                <h3 className="text-xl font-black text-slate-900">
+                                    {historyType === 'offline' ? 'Offline Billing History' : 'Online Order History'}
+                                </h3>
+                                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${historyType === 'offline' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
+                                    {historyType === 'offline' ? 'POS CRM' : 'Channel Sync'}
                                 </div>
                             </div>
 
-                            <div className="pt-8 border-t border-slate-50">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Financial Summary</h4>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-500">Total Amount Received</span>
-                                        <span className="text-sm font-black text-green-600">₹{selectedCustomer.totalPaid.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-500">Pending Amount</span>
-                                        <span className="text-sm font-black text-red-500">₹{selectedCustomer.pending.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-xs font-bold text-slate-500">Total Transactions</span>
-                                        <span className="text-xs font-black text-slate-900">12 Invoices</span>
-                                    </div>
+                            <div className="flex items-center space-x-4 w-full md:w-auto">
+
+                                <div className="relative flex-1 md:w-64">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                    <input
+                                        placeholder="Search transactions..."
+                                        value={txnSearch}
+                                        onChange={(e) => setTxnSearch(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-sm text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
                                 </div>
+                                <button
+                                    onClick={() => setShowExportModal(true)}
+                                    className="p-3 bg-slate-50 text-slate-400 rounded-sm hover:bg-slate-100 transition-all"
+                                >
+                                    <Download className="w-3.5 h-3.5" />
+                                </button>
                             </div>
-
-                            {/* Quick Actions removed as requested */}
-
                         </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-8 py-5">Invoice ID</th>
+                                        <th className="px-8 py-5">Date</th>
+                                        <th className="px-8 py-5">Amount</th>
+                                        <th className="px-8 py-5">{historyType === 'offline' ? 'Payment Status' : 'Order Status'}</th>
+                                        <th className="px-8 py-5">Pending</th>
+                                        {historyType === 'online' && <th className="px-8 py-5">Delivery Details</th>}
+                                        <th className="px-8 py-5">Actions</th>
+                                    </tr>
+
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {displayedTransactions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="px-8 py-12 text-center text-slate-400 font-bold">No {historyType} transactions found for this customer.</td>
+                                        </tr>
+                                    ) : (
+                                        displayedTransactions.map((t, i) => (
+                                            <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${t.source === 'online' ? 'bg-orange-500' : 'bg-blue-500'}`} />
+                                                        <span className="font-bold text-sm text-slate-900">{t.id}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6 text-sm font-bold text-slate-500">{t.date}</td>
+                                                <td className="px-8 py-6 text-sm font-black text-slate-900">₹{(t.paidAmount !== undefined ? t.paidAmount : t.total).toLocaleString()}</td>
+                                                <td className="px-8 py-6 text-sm">
+                                                    {historyType === 'offline' ? (
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${t.status === 'Paid' ? 'bg-green-100 text-green-600' :
+                                                            t.status === 'Partial' ? 'bg-orange-100 text-orange-600' :
+                                                                'bg-red-100 text-red-600'
+                                                            }`}>
+                                                            {t.status}
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${t.orderStatus === 'Delivered' ? 'bg-emerald-100 text-emerald-600' :
+                                                            t.orderStatus === 'Shipped' ? 'bg-purple-100 text-purple-600' :
+                                                                t.orderStatus === 'Pending' ? 'bg-orange-100 text-orange-600' :
+                                                                    'bg-blue-100 text-blue-600'
+                                                            }`}>
+                                                            {t.orderStatus || 'Pending'}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-8 py-6 text-sm font-black text-red-500">
+                                                    ₹{(t.total - (t.paidAmount !== undefined ? t.paidAmount : t.total)).toLocaleString()}
+                                                </td>
+                                                {historyType === 'online' && (
+                                                    <td className="px-8 py-6 text-[10px] font-bold text-slate-400 max-w-[150px] truncate">
+                                                        {selectedCustomer.address || 'Standard Delivery'}
+                                                    </td>
+                                                )}
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => handlePrintInvoice(t)}
+                                                            className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"
+                                                            title="View Invoice"
+                                                        >
+                                                            <Printer className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handlePrintInvoice(t)}
+                                                            className="p-2 bg-slate-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-all"
+                                                            title="Download"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        {historyType === 'offline' && (t.total - (t.paidAmount || 0)) > 0 && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setPayingTransaction(t);
+                                                                    setPaymentAmount((t.total - (t.paidAmount || 0)).toString());
+                                                                }}
+                                                                className="p-2 bg-orange-50 text-orange-400 hover:text-orange-600 rounded-lg transition-all"
+                                                                title="Record Payment"
+                                                            >
+                                                                <Wallet className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+
+                                            </tr>
+                                        ))
+                                    )}
+
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="p-8 mt-auto border-t border-slate-50 flex justify-between items-center">
+                            <p className="text-xs font-bold text-slate-400">Showing {displayedTransactions.length} {displayedTransactions.length === 1 ? 'entry' : 'entries'}</p>
+                            <div className="flex space-x-2">
+                                {/* Pagination placeholder - simplified for now */}
+                                <button className="w-10 h-10 flex items-center justify-center rounded-sm bg-blue-600 text-white font-black shadow-lg shadow-blue-100 transition-all border border-blue-600">1</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sidebar Section */}
+                <div className="space-y-6">
+                    {/* Contact Information */}
+                    <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-8">
+                        <div>
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Contact Information</h4>
+                            <div className="space-y-6">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 mb-1">Customer ID</p>
+                                    <p className="text-sm font-black text-slate-900">{selectedCustomer.id}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 mb-1">Phone Number</p>
+                                    <p className="text-sm font-bold text-slate-900">{selectedCustomer.phone}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 mb-1">Email</p>
+                                    <p className="text-sm font-bold text-slate-900">{selectedCustomer.email}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 mb-1">Address</p>
+                                    <p className="text-sm font-bold text-slate-900 leading-relaxed">
+                                        {selectedCustomer.address || 'No address provided'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-8 border-t border-slate-50">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Financial Summary</h4>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-slate-500">Total Amount Received</span>
+                                    <span className="text-sm font-black text-green-600">₹{dynamicTotalPaid.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-slate-500">Pending Amount</span>
+                                    <span className="text-sm font-black text-red-500">₹{dynamicPending.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-slate-500">Total Transactions</span>
+                                    <span className="text-xs font-black text-slate-900">{dynamicTotalInvoices} Invoices</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions removed as requested */}
+
                     </div>
                 </div>
             </div>
-        );
-    }
-
-    return (
+        </div>
+    ) : (
         <div className="space-y-6">
+            {isReadOnly && (
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-orange-600 p-1.5 rounded-lg">
+                        <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-black text-orange-900 uppercase">View Only Mode</p>
+                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">You have restricted access to customer management</p>
+                    </div>
+                </div>
+            )}
             {/* Top Bar with Mode Toggle */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                 <div className="flex items-center gap-6">
@@ -382,22 +481,72 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                         />
                     </div>
                     <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
-                        <button className="p-3 bg-slate-50 rounded-xl text-slate-500 hover:bg-slate-100 transition-all border border-slate-100 shadow-sm">
-                            <Filter className="w-3.5 h-3.5" />
-                        </button>
-                        {historyType === 'offline' ? (
-                            <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-sm whitespace-nowrap shadow-xl shadow-blue-100 active:scale-95 transition-all">
-                                <Plus className="w-4 h-4" /><span>New Customer</span>
-                            </button>
-                        ) : (
-                            <button className="flex items-center space-x-2 bg-orange-500 text-white px-6 py-3 rounded-xl font-black text-sm whitespace-nowrap shadow-xl shadow-orange-100 active:scale-95 transition-all">
-                                <FileDown className="w-4 h-4" /><span>Export Orders</span>
+                        {selectedRows.length > 0 && canDeleteCustomers && (
+                            <button
+                                onClick={handleBulkDelete}
+                                className="flex items-center space-x-2 bg-red-50 text-red-500 px-4 py-3 rounded-xl font-black text-sm hover:bg-red-100 transition-all border border-red-100 animate-in zoom-in"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Delete ({selectedRows.length})</span>
                             </button>
                         )}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`p-3 rounded-xl transition-all border shadow-sm ${showFilters ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border-slate-100'}`}
+                            >
+                                <Filter className="w-3.5 h-3.5" />
+                            </button>
+                            {showFilters && (
+                                <>
+                                    <div className="fixed inset-0 z-10" onClick={() => setShowFilters(false)} />
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-20 p-2 animate-in fade-in zoom-in slide-in-from-top-2 duration-200">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest p-2 mb-1">Filter by Status</p>
+                                        {(['All', 'Paid', 'Partial', 'Unpaid'] as const).map((status) => (
+                                            <button
+                                                key={status}
+                                                onClick={() => { setStatusFilter(status); setShowFilters(false); }}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-between group transition-colors ${statusFilter === status ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
+                                            >
+                                                <span>{status}</span>
+                                                {statusFilter === status && <Check className="w-3 h-3" />}
+                                                {status !== 'All' && statusFilter !== status && (
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${status === 'Paid' ? 'bg-emerald-500' : status === 'Partial' ? 'bg-orange-500' : 'bg-red-500'}`} />
+                                                )}
+                                            </button>
+                                        ))}
+                                        <div className="mt-2 pt-2 border-t border-slate-50">
+                                            <button
+                                                onClick={() => { setStatusFilter('All'); setSearch(''); setShowFilters(false); }}
+                                                className="w-full text-left px-3 py-2 rounded-lg text-[10px] font-black text-red-500 hover:bg-red-50 uppercase tracking-widest"
+                                            >
+                                                Reset All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        {/* "New Customer" button removed as requested */}
                     </div>
                 </div>
             </div>
 
+
+
+            {isReadOnly && (
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between mb-6 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center space-x-3">
+                        <div className="bg-orange-600 p-1.5 rounded-lg">
+                            <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-orange-900 uppercase">View Only Mode</p>
+                            <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">You have restricted access to this module</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Dynamic Content Section */}
             <div className="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm">
@@ -414,12 +563,12 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                                             {selectedRows.length === filtered.length && filtered.length > 0 && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
                                         </div>
                                     </th>
-                                    <th className="px-8 py-5">Customer Profile</th>
-                                    <th className="px-8 py-5 hidden md:table-cell">Contact</th>
-                                    <th className="px-8 py-5 text-green-600">Lifetime POS Spent</th>
-                                    <th className="px-8 py-5 text-red-500">Pending Amount</th>
-                                    <th className="px-8 py-5">Status</th>
-                                    <th className="px-8 py-5">Actions</th>
+                                    <th className="px-8 py-5">Customer Identity</th>
+                                    <th className="px-8 py-5 hidden md:table-cell">Communication</th>
+                                    <th className="px-8 py-5 text-green-600">Lifetime POS Revenue</th>
+                                    <th className="px-8 py-5 text-red-500">Credit Balance</th>
+                                    <th className="px-8 py-5">Account Status</th>
+                                    <th className="px-8 py-5">Admin Controls</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -437,7 +586,12 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-sm text-slate-900">{c.name}</p>
-                                                    <button onClick={() => setSelectedCustomerId(c.id)} className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-tighter mt-0.5">{c.id}</button>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <button onClick={() => setSelectedCustomerId(c.id)} className="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-tighter">{c.id}</button>
+                                                        {c.lastTransaction && (
+                                                            <span className="text-[9px] font-bold text-slate-300 uppercase">Last Visit: {c.lastTransaction}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -445,8 +599,12 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                                             <p className="text-sm font-bold text-slate-600">{c.phone}</p>
                                             <p className="text-[10px] font-bold text-slate-400">{c.email || 'No Email'}</p>
                                         </td>
-                                        <td className="px-8 py-6 text-sm font-black text-green-600">₹{c.totalPaid.toLocaleString()}</td>
-                                        <td className="px-8 py-6 text-sm font-black text-red-500">₹{c.pending.toLocaleString()}</td>
+                                        <td className="px-8 py-6 text-sm font-black text-green-600">
+                                            ₹{transactions.filter(t => t.customerId === c.id).reduce((sum, t) => sum + (t.paidAmount !== undefined ? t.paidAmount : t.total), 0).toLocaleString()}
+                                        </td>
+                                        <td className="px-8 py-6 text-sm font-black text-red-500">
+                                            ₹{(c.pending || 0).toLocaleString()}
+                                        </td>
                                         <td className="px-8 py-6">
                                             <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${c.status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
                                                 {c.status}
@@ -454,8 +612,15 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex gap-2">
-                                                <button className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /></button>
-                                                <button onClick={() => handleDelete(c.id)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-red-500 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                {canManageCustomers && (
+                                                    <button className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 transition-all"><Edit2 className="w-3.5 h-3.5" /></button>
+                                                )}
+                                                {canDeleteCustomers && (
+                                                    <button onClick={() => handleDelete(c.id)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-red-500 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                )}
+                                                {isReadOnly && (
+                                                    <div className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-full border border-slate-100">Locked</div>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -470,77 +635,107 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                                 <tr>
                                     <th className="px-8 py-5 w-10">
                                         <div
-                                            className="w-5 h-5 rounded-md border-2 border-slate-300 bg-white transition-all cursor-pointer flex items-center justify-center"
+                                            onClick={toggleSelectAll}
+                                            className={`w-5 h-5 rounded-md border-2 transition-all cursor-pointer flex items-center justify-center ${selectedRows.length === filtered.length && filtered.length > 0 ? 'bg-orange-500 border-orange-500' : 'border-slate-300 bg-white'}`}
                                         >
+                                            {selectedRows.length === filtered.length && filtered.length > 0 && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
                                         </div>
                                     </th>
-                                    <th className="px-8 py-5">Online Customer Profile</th>
-                                    <th className="px-8 py-5 text-center">Fulfillment</th>
-                                    <th className="px-8 py-5 text-right">Actions</th>
-
-
+                                    <th className="px-8 py-5">Digital Buyer Profile</th>
+                                    <th className="px-8 py-5 hidden md:table-cell">Logistics & Contact</th>
+                                    <th className="px-8 py-5 text-orange-600">Channel Revenue (LTV)</th>
+                                    <th className="px-8 py-5 text-red-400">Pending (unpaid)</th>
+                                    <th className="px-8 py-5">Delivery Roadmap</th>
+                                    <th className="px-8 py-5 text-right">Order Tools</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {transactions.filter(t => t.source === 'online').length === 0 ? (
+                                {filtered.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-8 py-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No online orders found in database</td>
-
+                                        <td colSpan={7} className="px-8 py-12 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No online customers found in database</td>
                                     </tr>
-
                                 ) : (
-                                    transactions.filter(t => t.source === 'online').map(order => {
-                                        const cust = customers.find(c => c.id === order.customerId);
+                                    filtered.map(c => {
+                                        const lastOrder = transactions.filter(t => t.customerId === c.id && t.source === 'online').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
                                         return (
-                                            <tr key={order.id} className="hover:bg-slate-50 transition-colors group">
+                                            <tr key={c.id} className="hover:bg-slate-50 transition-colors group">
                                                 <td className="px-8 py-6">
-                                                    <div className="w-5 h-5 rounded-md border-2 border-slate-300 bg-white transition-all cursor-pointer flex items-center justify-center">
+                                                    <div onClick={() => toggleRow(c.id)} className={`w-5 h-5 rounded-md border-2 transition-all cursor-pointer flex items-center justify-center ${selectedRows.includes(c.id) ? 'bg-orange-500 border-orange-500' : 'border-slate-300 bg-white'}`}>
+                                                        {selectedRows.includes(c.id) && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 font-black text-sm uppercase">
-                                                            {cust?.name.charAt(0) || 'O'}
+                                                            {c.name.charAt(0)}
                                                         </div>
                                                         <div>
                                                             <button
-                                                                onClick={() => setSelectedCustomerId(order.customerId)}
-                                                                className="font-black text-sm text-slate-900 hover:text-blue-600 hover:underline text-left block"
+                                                                onClick={() => setSelectedCustomerId(c.id)}
+                                                                className="font-black text-sm text-slate-900 hover:text-orange-600 hover:underline text-left block"
                                                             >
-                                                                {cust?.name || 'Online Customer'}
+                                                                {c.name}
                                                             </button>
-                                                            <p className="text-[10px] font-black text-slate-400 font-mono uppercase tracking-tighter mt-0.5">{order.id}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{c.id}</p>
+                                                                {lastOrder && (
+                                                                    <span className="text-[9px] font-bold text-orange-300 uppercase">Order: {lastOrder.id}</span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${order.orderStatus === 'Delivered' ? 'bg-emerald-50 text-emerald-600' :
-                                                        order.orderStatus === 'Shipped' ? 'bg-purple-50 text-purple-600' :
+                                                <td className="px-8 py-6 hidden md:table-cell">
+                                                    <p className="text-sm font-bold text-slate-600">{c.phone}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 truncate max-w-[140px]">{c.address || 'Standard Shipping'}</p>
+                                                </td>
+                                                <td className="px-8 py-6 text-sm font-black text-slate-900 flex flex-col">
+                                                    <span className="text-orange-600">
+                                                        ₹{transactions.filter(t => t.customerId === c.id).reduce((sum, t) => sum + (t.paidAmount !== undefined ? t.paidAmount : t.total), 0).toLocaleString()}
+                                                    </span>
+                                                    <span className="text-[9px] font-bold text-slate-300 uppercase">via {lastOrder?.method || 'Online'}</span>
+                                                </td>
+                                                <td className="px-8 py-6 text-sm font-black text-red-400">
+                                                    ₹{(c.pending || 0).toLocaleString()}
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${lastOrder?.orderStatus === 'Delivered' ? 'bg-emerald-50 text-emerald-600' :
+                                                        lastOrder?.orderStatus === 'Shipped' ? 'bg-purple-50 text-purple-600' :
                                                             'bg-orange-50 text-orange-600'
                                                         }`}>
-                                                        {order.orderStatus || 'Pending'}
+                                                        {lastOrder?.orderStatus || 'Pending'}
                                                     </span>
                                                 </td>
 
                                                 <td className="px-8 py-6">
                                                     <div className="flex items-center gap-2 justify-end">
                                                         <button
-                                                            onClick={() => handlePrintInvoice(order)}
+                                                            onClick={(e) => { e.stopPropagation(); setSelectedCustomerId(c.id); }}
                                                             className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 transition-all shadow-sm"
-                                                            title="Print Invoice"
+                                                            title="View Details"
                                                         >
-                                                            <Printer className="w-3.5 h-3.5" />
+                                                            <Eye className="w-3.5 h-3.5" />
                                                         </button>
-                                                        <button
-                                                            onClick={() => handlePrintInvoice(order)}
-                                                            className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-emerald-600 transition-all shadow-sm"
-                                                            title="Download PDF"
-                                                        >
-                                                            <Download className="w-3.5 h-3.5" />
-                                                        </button>
+                                                        {lastOrder && (
+                                                            <button
+                                                                onClick={() => handlePrintInvoice(lastOrder)}
+                                                                className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-emerald-600 transition-all shadow-sm"
+                                                                title="Latest Invoice"
+                                                            >
+                                                                <Printer className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                        {canDeleteCustomers && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }}
+                                                                className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-red-500 transition-all shadow-sm"
+                                                                title="Delete Online Profile"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
-
                                             </tr>
                                         );
                                     })
@@ -550,11 +745,15 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                     </div>
                 )}
             </div>
+        </div>
+    );
 
+    return (
+        <div className="space-y-6">
+            {pageContent}
 
             {showAddModal && (
                 <Portal>
-
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                         <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
                             {/* Blue Header */}
@@ -591,9 +790,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
             {showExportModal && (
                 <Portal>
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-
                         <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative px-8 py-12 lg:px-12">
-                            {/* Close Button */}
                             <button
                                 onClick={() => setShowExportModal(false)}
                                 className="absolute top-8 right-8 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all"
@@ -609,64 +806,16 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                             </div>
 
                             <div className="bg-white border-2 border-slate-50 rounded-[32px] p-8 lg:p-10 shadow-sm relative overflow-hidden">
-                                {/* Mesh Gradient Background */}
-                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-blue-50 rounded-full blur-[100px] -z-1" />
-
                                 <div className="flex flex-col items-center text-center relative z-10">
                                     <div className="w-16 h-16 bg-blue-50 rounded flex items-center justify-center mb-6 border border-blue-100">
                                         <FileDown className="w-7 h-7 text-blue-600" />
                                     </div>
                                     <h3 className="text-xl font-black text-slate-900 mb-2">Export Customer Data</h3>
-                                    <p className="text-sm font-bold text-slate-400 mb-8">Choose the format you want to export your items.</p>
-
                                     <div className="w-full space-y-4 max-w-sm mx-auto">
                                         <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-blue-100 transition-all active:scale-95 group">
-                                            <FileSpreadsheet className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                            <FileSpreadsheet className="w-4 h-4" />
                                             <span>Export as Excel (.xlsx)</span>
                                         </button>
-
-                                        <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
-                                            <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                            <span>Export as CSV (.csv)</span>
-                                        </button>
-
-                                        <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
-                                            <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                            <span>Export as PDF (.pdf)</span>
-                                        </button>
-                                    </div>
-
-                                    <div className="mt-8 text-left w-full max-w-sm border-t border-slate-100 pt-8">
-                                        <button className="text-blue-600 font-black text-sm hover:underline flex items-center space-x-2 mb-6 group">
-                                            <ArrowDownToLine className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
-                                            <span>Download sample export format</span>
-                                        </button>
-                                        <ul className="space-y-3">
-                                            <li className="flex items-start space-x-3">
-                                                <div className="w-5 h-5 bg-green-50 rounded-sm flex items-center justify-center mt-0.5">
-                                                    <Check className="w-2.5 h-2.5 text-green-600" />
-                                                </div>
-                                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Supports: .xlsx, .csv, .pdf</span>
-                                            </li>
-                                            <li className="flex items-start space-x-3">
-                                                <div className="w-5 h-5 bg-green-50 rounded-sm flex items-center justify-center mt-0.5">
-                                                    <Check className="w-2.5 h-2.5 text-green-600" />
-                                                </div>
-                                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Exports all customers including contact & pending balance</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-
-                                    <div className="mt-10 flex items-center justify-start w-full max-w-sm">
-                                        <label className="flex items-center space-x-4 cursor-pointer group">
-                                            <div
-                                                onClick={() => setIncludeZeroBalance(!includeZeroBalance)}
-                                                className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${includeZeroBalance ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'border-slate-200 bg-white hover:border-blue-300'}`}
-                                            >
-                                                {includeZeroBalance && <div className="w-3 h-3 bg-white rounded-full animate-in zoom-in duration-200" />}
-                                            </div>
-                                            <span className="text-sm font-black text-slate-700 group-hover:text-blue-600 transition-colors">Include customers with zero balance</span>
-                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -696,6 +845,71 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                     />
                 )}
             </div>
+            {/* Record Payment Modal */}
+            {payingTransaction && (
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                            <div className="p-8 lg:p-10">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center">
+                                            <Wallet className="w-6 h-6 text-orange-600" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-black text-slate-900 uppercase">Record Payment</h2>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{payingTransaction.id}</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setPayingTransaction(null)} className="p-2 hover:bg-slate-100 rounded-sm transition-colors">
+                                        <X className="w-4 h-4 text-slate-400" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <span className="text-xs font-bold text-slate-500 uppercase">Total Bill</span>
+                                            <span className="text-sm font-black text-slate-900">₹{payingTransaction.total.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mb-4 text-emerald-600">
+                                            <span className="text-xs font-bold uppercase">Already Paid</span>
+                                            <span className="text-sm font-black text-emerald-600">₹{(payingTransaction.paidAmount || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
+                                            <span className="text-sm font-black text-slate-900 uppercase">Pending Due</span>
+                                            <span className="text-xl font-black text-red-500">₹{(payingTransaction.total - (payingTransaction.paidAmount || 0)).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Manually Enter Received Cash</label>
+                                        <div className="relative">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-lg font-black text-slate-300">₹</span>
+                                            <input
+                                                type="number"
+                                                value={paymentAmount}
+                                                onChange={(e) => setPaymentAmount(e.target.value)}
+                                                placeholder="0.00"
+                                                className="w-full pl-10 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl font-black outline-none focus:border-blue-500 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <button
+                                    onClick={handleRecordPayment}
+                                    className="w-full bg-[#10B981] hover:bg-[#059669] text-white py-4 rounded-[28px] font-black flex items-center justify-center space-x-3 shadow-xl shadow-green-100 transition-all active:scale-95"
+                                >
+                                    <Coins className="w-5 h-5" />
+                                    <span>Confirm Cash Payment</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Portal>
+            )}
         </div>
     );
 };

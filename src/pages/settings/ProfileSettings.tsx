@@ -32,7 +32,7 @@ const ProfileSettings: React.FC = () => {
             particleCount: 100,
             spread: 70,
             origin: { y: 0.6 },
-            colors: ['#2563EB', '#10B981', '#3B82F6']
+            colors: ['#0284C7', '#10B981', '#38BDF8']
         });
         setTimeout(() => setSaved(false), 3000);
     };

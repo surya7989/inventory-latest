@@ -29,7 +29,7 @@ interface ThemedInvoiceProps {
 
 const invoiceThemes: Record<string, { primary: string; accent: string }> = {
     vy_restaurant: { primary: '#92400E', accent: '#F59E0B' },
-    vy_classic: { primary: '#1E3A8A', accent: '#3B82F6' },
+    vy_classic: { primary: '#0284C7', accent: '#38BDF8' },
     vy_stylish: { primary: '#701A75', accent: '#D946EF' },
     vy_elegant: { primary: '#7F1D1D', accent: '#EF4444' },
     vy_pro: { primary: '#111827', accent: '#F59E0B' },

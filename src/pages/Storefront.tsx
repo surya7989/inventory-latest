@@ -131,7 +131,7 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onChec
     };
 
     const getProductDescription = (product: Product) => {
-        return product.description || 'Premium quality product managed via Nexarats Inventory Control.';
+        return product.description || 'Premium quality product managed via NEXA POS Inventory Control.';
     };
 
     const handlePlaceOrder = () => {
@@ -204,7 +204,7 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onChec
                                 <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center rotate-3 shadow-lg shadow-blue-100">
                                     <ShoppingBag className="w-5 h-5 text-white" />
                                 </div>
-                                <span className="text-2xl font-black tracking-tight text-slate-900">Nexarats<span className="text-blue-600">Shop</span></span>
+                                <span className="text-2xl font-black tracking-tight text-slate-900">NEXA<span className="text-blue-600">Store</span></span>
                             </div>
                         </div>
 
@@ -246,7 +246,7 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onChec
                         <div className="relative z-10 max-w-2xl">
                             <span className="inline-block px-4 py-1.5 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 backdrop-blur-md">Premium Marketplace</span>
                             <h1 className="text-5xl lg:text-7xl font-black leading-tight mb-8">Quality Products <br />at your <span className="underline decoration-blue-300 decoration-8 underline-offset-8">Doorstep</span></h1>
-                            <p className="text-blue-100 text-xl font-bold leading-relaxed mb-10">Experience the next generation of online shopping. Fresh, fast, and fully transparent at Nexarats Shop.</p>
+                            <p className="text-blue-100 text-xl font-bold leading-relaxed mb-10">Experience the next generation of online shopping. Fresh, fast, and fully transparent at NEXA Store.</p>
                             <button className="px-10 py-5 bg-white text-blue-600 rounded-[20px] font-black text-lg shadow-2xl hover:bg-blue-50 transition-all active:scale-95 flex items-center gap-3">
                                 Start Shopping <ChevronRight className="w-5 h-5" />
                             </button>

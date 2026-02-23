@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Filter, Plus, Edit2, Trash2, Phone, Mail, X, Building2, Upload, ChevronDown, Eye, ArrowLeft, MoreVertical, Calendar, Clock, CreditCard, ShieldCheck, MapPin, Printer, Send, FileText, Download, Check, FileDown, FileSpreadsheet, ArrowDownToLine } from 'lucide-react';
-import { Vendor, PurchaseOrder } from '../types';
+import { Search, Filter, Plus, Edit2, Trash2, Phone, Mail, X, Building2, Upload, ChevronDown, Eye, ArrowLeft, MoreVertical, Calendar, Clock, CreditCard, ShieldCheck, MapPin, Printer, Send, FileText, Check, FileSpreadsheet } from 'lucide-react';
+import { Vendor, PurchaseOrder, User } from '../types';
 import Portal from '../components/Portal';
 
 
@@ -9,9 +9,14 @@ interface VendorsProps {
     purchases: PurchaseOrder[];
     onUpdate: React.Dispatch<React.SetStateAction<Vendor[]>>;
     onDelete?: (id: string) => void;
+    user?: User | null;
 }
 
-const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelete }) => {
+const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelete, user }) => {
+    const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['vendors'] || 'none');
+    const isReadOnly = permissionLevel === 'read';
+    const canManageVendors = permissionLevel === 'manage' || permissionLevel === 'cru';
+    const canDeleteVendors = permissionLevel === 'manage' || permissionLevel === 'cru';
     const [search, setSearch] = useState('');
     const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -177,9 +182,6 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                                         <input placeholder="Search purchases..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-sm text-sm font-bold focus:ring-2 focus:ring-purple-500 outline-none" />
                                     </div>
-                                    <button className="p-3 bg-slate-50 text-slate-400 rounded-sm hover:bg-slate-100 transition-all">
-                                        <Download className="w-3.5 h-3.5" />
-                                    </button>
                                 </div>
                             </div>
 
@@ -298,10 +300,6 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                         <Send className="w-3.5 h-3.5" />
                                         <span>Send Inquiry</span>
                                     </button>
-                                    <button className="w-full py-4 px-6 bg-white border-2 border-slate-100 rounded font-black text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center space-x-3 text-sm">
-                                        <Download className="w-3.5 h-3.5" />
-                                        <span>Purchase History</span>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -359,17 +357,25 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                             </>
                         )}
                     </div>
-                    <button
-                        onClick={() => setShowExportModal(true)}
-                        className="p-3 bg-slate-100 rounded-sm text-slate-500 hover:bg-slate-200 transition-all border border-slate-200"
-                    >
-                        <Download className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap">
-                        <Plus className="w-3.5 h-3.5" /><span>Add Vendor</span>
-                    </button>
+                    {canManageVendors && (
+                        <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap">
+                            <Plus className="w-3.5 h-3.5" /><span>Add Vendor</span>
+                        </button>
+                    )}
                 </div>
             </div>
+
+            {isReadOnly && (
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 mb-6">
+                    <div className="bg-orange-600 p-1.5 rounded-lg">
+                        <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-black text-orange-900 uppercase">View Only Mode</p>
+                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">You have restricted access to vendor management</p>
+                    </div>
+                </div>
+            )}
 
             <div className="bg-white rounded border border-slate-100 overflow-hidden overflow-x-auto">
                 <table className="w-full text-left">
@@ -445,8 +451,15 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                                 <td className="px-4 lg:px-6 py-4 font-black text-sm text-red-500">₹{v.pendingAmount.toLocaleString()}</td>
                                 <td className="px-4 lg:px-6 py-4">
                                     <div className="flex space-x-2">
-                                        <button onClick={() => handleEdit(v)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3.5 h-3.5" /></button>
-                                        <button onClick={() => handleDelete(v.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3.5 h-3.5" /></button>
+                                        {canManageVendors && (
+                                            <button onClick={() => handleEdit(v)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3.5 h-3.5" /></button>
+                                        )}
+                                        {canDeleteVendors && (
+                                            <button onClick={() => handleDelete(v.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3.5 h-3.5" /></button>
+                                        )}
+                                        {isReadOnly && (
+                                            <div className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-full border border-slate-100">Locked</div>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -615,89 +628,93 @@ const Vendors: React.FC<VendorsProps> = ({ vendors, purchases, onUpdate, onDelet
                 </Portal>
             )}
 
+
             {/* Image Preview Modal */}
-            {previewImage && (
-                <Portal>
-                    <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
-                        <div className="relative max-w-3xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => setPreviewImage(null)} className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-slate-500 hover:text-red-500 transition-colors z-10">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                            <img src={previewImage} alt="Preview" className="w-full h-full object-contain rounded" />
-                        </div>
-                    </div>
-                </Portal>
-            )}
-            {/* Export Modal */}
-            {showExportModal && (
-                <Portal>
-
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative px-8 py-12 lg:px-12">
-                            {/* Close Button */}
-                            <button
-                                onClick={() => setShowExportModal(false)}
-                                className="absolute top-8 right-8 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all"
-                            >
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-
-                            <div className="text-center mb-8">
-                                <h2 className="text-3xl font-black text-slate-900 mb-3">Export Items</h2>
-                                <p className="text-slate-500 font-bold max-w-md mx-auto">
-                                    Export your vendor database using Excel, PDF, or CSV formats.
-                                </p>
+            {
+                previewImage && (
+                    <Portal>
+                        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
+                            <div className="relative max-w-3xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => setPreviewImage(null)} className="absolute -top-3 -right-3 p-2 bg-white rounded-full shadow-lg text-slate-500 hover:text-red-500 transition-colors z-10">
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                                <img src={previewImage} alt="Preview" className="w-full h-full object-contain rounded" />
                             </div>
+                        </div>
+                    </Portal>
+                )
+            }
+            {/* Export Modal */}
+            {
+                showExportModal && (
+                    <Portal>
 
-                            <div className="bg-white border-2 border-slate-50 rounded-[32px] p-8 lg:p-10 shadow-sm relative overflow-hidden">
-                                {/* Mesh Gradient Background */}
-                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-blue-50 rounded-full blur-[100px] -z-1" />
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                            <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative px-8 py-12 lg:px-12">
+                                {/* Close Button */}
+                                <button
+                                    onClick={() => setShowExportModal(false)}
+                                    className="absolute top-8 right-8 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
 
-                                <div className="flex flex-col items-center text-center relative z-10">
-                                    <div className="w-16 h-16 bg-blue-50 rounded flex items-center justify-center mb-6 border border-blue-100">
-                                        <FileDown className="w-4 h-4 text-blue-600" />
-                                    </div>
-                                    <h3 className="text-xl font-black text-slate-900 mb-2">Export Vendor Data</h3>
-                                    <p className="text-sm font-bold text-slate-400 mb-8">Choose the format you want to export your items.</p>
+                                <div className="text-center mb-8">
+                                    <h2 className="text-3xl font-black text-slate-900 mb-3">Export Items</h2>
+                                    <p className="text-slate-500 font-bold max-w-md mx-auto">
+                                        Export your vendor database using Excel, PDF, or CSV formats.
+                                    </p>
+                                </div>
 
-                                    <div className="w-full space-y-4 max-w-sm mx-auto">
-                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-blue-100 transition-all active:scale-95 group">
-                                            <FileSpreadsheet className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                            <span>Export as Excel (.xlsx)</span>
-                                        </button>
+                                <div className="bg-white border-2 border-slate-50 rounded-[32px] p-8 lg:p-10 shadow-sm relative overflow-hidden">
+                                    {/* Mesh Gradient Background */}
+                                    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-blue-50 rounded-full blur-[100px] -z-1" />
 
-                                        <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
-                                            <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                            <span>Export as CSV (.csv)</span>
-                                        </button>
+                                    <div className="flex flex-col items-center text-center relative z-10">
+                                        <div className="w-16 h-16 bg-blue-50 rounded flex items-center justify-center mb-6 border border-blue-100">
+                                            <FileText className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-slate-900 mb-2">Export Vendor Data</h3>
+                                        <p className="text-sm font-bold text-slate-400 mb-8">Choose the format you want to export your items.</p>
 
-                                        <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
-                                            <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                            <span>Export as PDF (.pdf)</span>
-                                        </button>
-                                    </div>
+                                        <div className="w-full space-y-4 max-w-sm mx-auto">
+                                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-blue-100 transition-all active:scale-95 group">
+                                                <FileSpreadsheet className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                                <span>Export as Excel (.xlsx)</span>
+                                            </button>
 
-                                    <div className="mt-8 text-left w-full max-w-sm border-t border-slate-100 pt-8">
-                                        <button className="text-blue-600 font-black text-sm hover:underline flex items-center space-x-2 mb-6 group">
-                                            <ArrowDownToLine className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
-                                            <span>Download sample export format</span>
-                                        </button>
-                                        <ul className="space-y-3">
-                                            <li className="flex items-start space-x-3">
-                                                <div className="w-4 h-4 bg-green-50 rounded-sm flex items-center justify-center mt-0.5">
-                                                    <Check className="w-2.5 h-2.5 text-green-600" />
-                                                </div>
-                                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Supports: .xlsx, .csv, .pdf</span>
-                                            </li>
-                                        </ul>
+                                            <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
+                                                <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                                <span>Export as CSV (.csv)</span>
+                                            </button>
+
+                                            <button className="w-full bg-white border-2 border-slate-100 hover:border-slate-200 text-slate-600 py-4 rounded font-black flex items-center justify-center space-x-3 transition-all active:scale-95 group">
+                                                <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                                <span>Export as PDF (.pdf)</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="mt-8 text-left w-full max-w-sm border-t border-slate-100 pt-8">
+                                            <button className="text-blue-600 font-black text-sm hover:underline flex items-center space-x-2 mb-6 group">
+                                                <span>Export format details</span>
+                                            </button>
+                                            <ul className="space-y-3">
+                                                <li className="flex items-start space-x-3">
+                                                    <div className="w-4 h-4 bg-green-50 rounded-sm flex items-center justify-center mt-0.5">
+                                                        <Check className="w-2.5 h-2.5 text-green-600" />
+                                                    </div>
+                                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Supports: .xlsx, .csv, .pdf</span>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </Portal>
-            )}
-        </div>
+                    </Portal>
+                )
+            }
+        </div >
     );
 };
 

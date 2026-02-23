@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Users, Key, History, UserPlus, Search, MoreVertical, ShieldAlert, CheckCircle2, XCircle, Trash2, Edit2, X, Save, Eye, EyeOff, Lock } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import Portal from '../components/Portal';
+import { Plus } from 'lucide-react';
 
 interface AdminUser {
     id: string;
@@ -9,72 +11,107 @@ interface AdminUser {
     role: string;
     status: 'Active' | 'Inactive';
     lastLogin: string;
-    permissions?: string[];
+    permissions: Record<string, AccessLevel>;
     password?: string;
 }
 
+const ALL_LEVELS: AccessLevel[] = ['manage', 'cru', 'read', 'none'];
+
 const ACCESS_MODULES = [
-    { id: 'dashboard', label: 'Dashboard Overview' },
-    { id: 'billing', label: 'Billing & POS' },
-    { id: 'inventory', label: 'Inventory & Products' },
-    { id: 'customers', label: 'Customer Relations' },
-    { id: 'vendors', label: 'Vendor Management' },
-    { id: 'purchases', label: 'Purchase Orders' },
-    { id: 'expenses', label: 'Expense Tracking' },
-    { id: 'payments', label: 'Payment Records' },
-    { id: 'analytics', label: 'Business Analytics' },
-    { id: 'reports', icon: History, label: 'Business Reports' },
-    { id: 'audit', label: 'Audit Logs' },
-    { id: 'settings', label: 'System Settings' },
-    { id: 'admin-access', label: 'Admin Access Control' }
+    { id: 'dashboard', label: 'Dashboard', levels: ALL_LEVELS },
+    { id: 'billing', label: 'Billing', levels: ALL_LEVELS },
+    { id: 'inventory', label: 'Inventory', levels: ALL_LEVELS },
+    { id: 'customers', label: 'Customers', levels: ALL_LEVELS },
+    { id: 'vendors', label: 'Vendors', levels: ALL_LEVELS },
+    { id: 'expenses', label: 'Expenses', levels: ALL_LEVELS },
+    { id: 'analytics', label: 'Analytics', levels: ALL_LEVELS },
+    { id: 'settings', label: 'Settings', levels: ALL_LEVELS },
+    { id: 'online-store', label: 'Online Store', levels: ALL_LEVELS },
+    { id: 'admin', label: 'Admin Access', levels: ALL_LEVELS }
 ];
 
-const PERMISSION_MATRIX: Record<string, string[]> = {
-    'Super Admin': ACCESS_MODULES.map(m => m.id),
-    'Admin': ACCESS_MODULES.map(m => m.id),
-    'Manager': ['dashboard', 'billing', 'inventory', 'customers', 'vendors', 'purchases', 'expenses', 'payments', 'analytics', 'reports', 'audit', 'admin-access'],
-    'Cashier': ['dashboard', 'billing', 'customers', 'payments', 'reports', 'inventory'],
-    'Staff': ['dashboard', 'inventory', 'customers', 'billing', 'reports'],
-    'Accountant': ['dashboard', 'reports', 'expenses', 'purchases', 'billing', 'payments'],
-    'Delivery Agent': ['dashboard', 'customers']
+const LEVEL_DESCRIPTIONS: Record<AccessLevel, string> = {
+    manage: 'Full control (CRUD + administrative actions).',
+    cru: 'Create, Read, Update, and Delete access.',
+    read: 'View-only access.',
+    none: 'No access (hidden from sidebar).'
 };
 
-const AdminAccess: React.FC = () => {
+type AccessLevel = 'manage' | 'cru' | 'read' | 'none';
+
+const PERMISSION_MATRIX: Record<string, Record<string, AccessLevel>> = {
+    'Super Admin': {
+        'dashboard': 'manage', 'billing': 'manage', 'inventory': 'manage', 'customers': 'manage', 'vendors': 'manage',
+        'expenses': 'manage', 'analytics': 'manage', 'settings': 'manage', 'online-store': 'manage', 'admin': 'manage'
+    },
+    'Admin': {
+        'dashboard': 'manage', 'billing': 'manage', 'inventory': 'manage', 'customers': 'manage', 'vendors': 'manage',
+        'expenses': 'manage', 'analytics': 'manage', 'settings': 'manage', 'online-store': 'manage', 'admin': 'manage'
+    },
+    'Manager': {
+        'dashboard': 'read', 'billing': 'manage', 'inventory': 'manage', 'customers': 'manage', 'vendors': 'manage',
+        'expenses': 'manage', 'analytics': 'manage', 'settings': 'none', 'online-store': 'manage', 'admin': 'read'
+    },
+    'Cashier': {
+        'dashboard': 'none', 'billing': 'manage', 'inventory': 'read', 'customers': 'read', 'vendors': 'none',
+        'expenses': 'none', 'analytics': 'none', 'settings': 'none', 'online-store': 'none', 'admin': 'none'
+    },
+    'Staff': {
+        'dashboard': 'none', 'billing': 'cru', 'inventory': 'read', 'customers': 'read', 'vendors': 'none',
+        'expenses': 'none', 'analytics': 'none', 'settings': 'none', 'online-store': 'none', 'admin': 'none'
+    },
+    'Accountant': {
+        'dashboard': 'read', 'billing': 'read', 'inventory': 'read', 'customers': 'read', 'vendors': 'manage',
+        'expenses': 'manage', 'analytics': 'manage', 'settings': 'none', 'online-store': 'none', 'admin': 'none'
+    },
+    'Delivery Agent': {
+        'dashboard': 'none', 'billing': 'none', 'inventory': 'none', 'customers': 'manage', 'vendors': 'none',
+        'expenses': 'none', 'analytics': 'none', 'settings': 'none', 'online-store': 'none', 'admin': 'none'
+    }
+};
+
+import { Page, User, AccessLevel as GlobalAccessLevel } from '../types';
+
+interface AdminAccessProps {
+    user?: User | null;
+}
+
+const AdminAccess: React.FC<AdminAccessProps> = ({ user }) => {
+    const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['admin'] || 'manage');
+    const isReadOnly = permissionLevel === 'read';
+    const canManageUsers = permissionLevel === 'manage';
+
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [expandedModule, setExpandedModule] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     const switchUserView = (user: AdminUser) => {
         const email = encodeURIComponent(user.email);
         const password = encodeURIComponent(user.password || '');
         const name = encodeURIComponent(user.name);
         const role = encodeURIComponent(user.role);
-        window.open(`${window.location.origin}${window.location.pathname}?view_creds=true&login_email=${email}&login_password=${password}&name=${name}&role=${role}`, '_blank');
+        const perms = encodeURIComponent(JSON.stringify(user.permissions));
+        window.open(`${window.location.origin}${window.location.pathname}?view_creds=true&login_email=${email}&login_password=${password}&name=${name}&role=${role}&perms=${perms}`, '_blank');
     };
 
     // New User Form State
-    const [newUser, setNewUser] = useState<{
-        name: string;
-        email: string;
-        password: string;
-        role: string;
-        status: 'Active' | 'Inactive';
-        permissions: string[];
-    }>({
+    const [newUser, setNewUser] = useState({
         name: '',
         email: '',
         password: '',
         role: 'Manager',
-        status: 'Active',
-        permissions: ['dashboard']
+        status: 'Active' as const,
+        permissions: PERMISSION_MATRIX['Manager']
     });
 
     const [users, setUsers] = useLocalStorage<AdminUser[]>('nx_admin_users', [
-        { id: '1', name: 'Surya Teja', email: 'surya@nexarats.com', role: 'Super Admin', status: 'Active', lastLogin: '10 mins ago', permissions: ACCESS_MODULES.map(m => m.id), password: 'admin123' },
-        { id: '2', name: 'Rahul Kumar', email: 'saisurya7989@gmail.com', role: 'Manager', status: 'Active', lastLogin: 'Never', permissions: ACCESS_MODULES.map(m => m.id), password: 'rahulkumar7989' },
-        { id: '3', name: 'Nexa Staff', email: 'staff@nexarats.com', role: 'Manager', status: 'Active', lastLogin: 'Yesterday', permissions: ['dashboard', 'billing', 'inventory'], password: 'staff123' },
-        { id: '4', name: 'Accountant', email: 'accounts@nexarats.com', role: 'Accountant', status: 'Inactive', lastLogin: '5 days ago', permissions: ['dashboard', 'analytics'], password: 'accounts123' }
+        { id: '1', name: 'Surya Teja', email: 'surya@nexarats.com', role: 'Super Admin', status: 'Active', lastLogin: '10 mins ago', permissions: PERMISSION_MATRIX['Super Admin'], password: 'admin123' },
+        { id: '2', name: 'Rahul Kumar', email: 'saisurya7989@gmail.com', role: 'Manager', status: 'Active', lastLogin: 'Never', permissions: PERMISSION_MATRIX['Manager'], password: 'rahulkumar7989' },
+        { id: '3', name: 'Nexa Staff', email: 'staff@nexarats.com', role: 'Staff', status: 'Active', lastLogin: 'Yesterday', permissions: PERMISSION_MATRIX['Staff'], password: 'staff123' },
+        { id: '4', name: 'Accountant', email: 'accounts@nexarats.com', role: 'Accountant', status: 'Inactive', lastLogin: '5 days ago', permissions: PERMISSION_MATRIX['Accountant'], password: 'accounts123' }
     ]);
 
     const filteredUsers = users.filter(user =>
@@ -91,8 +128,8 @@ const AdminAccess: React.FC = () => {
 
         const userToAdd: AdminUser = {
             id: `ADM-${Date.now()}`,
-            name: newUser.name,
-            email: newUser.email,
+            name: newUser.name.trim(),
+            email: newUser.email.trim().toLowerCase(),
             password: newUser.password,
             role: newUser.role,
             status: newUser.status,
@@ -100,45 +137,57 @@ const AdminAccess: React.FC = () => {
             permissions: newUser.permissions
         };
 
-        setUsers([userToAdd, ...users]);
-        setNewUser({ name: '', email: '', password: '', role: 'Manager', status: 'Active', permissions: ['dashboard'] });
+        setUsers(prev => [userToAdd, ...prev]);
+        setNewUser({ name: '', email: '', password: '', role: 'Manager', status: 'Active', permissions: PERMISSION_MATRIX['Manager'] });
         setIsModalOpen(false);
+        // Add a small delay for feedback if needed, but alert is fine for now
     };
 
-    const togglePermission = (moduleId: string, isDraft: boolean = true) => {
+    const togglePermission = (moduleId: string, level: AccessLevel, isDraft: boolean = true) => {
         if (isDraft) {
             setNewUser(prev => ({
                 ...prev,
-                permissions: prev.permissions.includes(moduleId)
-                    ? prev.permissions.filter(id => id !== moduleId)
-                    : [...prev.permissions, moduleId]
+                permissions: { ...prev.permissions, [moduleId]: level }
             }));
-        } else if (editingUser) {
-            const currentPerms = editingUser.permissions || [];
-            setEditingUser({
-                ...editingUser,
-                permissions: currentPerms.includes(moduleId)
-                    ? currentPerms.filter(id => id !== moduleId)
-                    : [...currentPerms, moduleId]
+        } else {
+            setEditingUser(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    permissions: { ...prev.permissions, [moduleId]: level }
+                };
             });
         }
     };
 
+    const cyclePermission = (moduleId: string, isDraft: boolean = true) => {
+        const module = ACCESS_MODULES.find(m => m.id === moduleId);
+        if (!module) return;
+
+        const currentPerms = isDraft ? newUser.permissions : editingUser?.permissions;
+        const currentLevel = currentPerms ? currentPerms[moduleId] : 'none';
+        const currentIndex = module.levels.indexOf(currentLevel || 'none');
+        const nextIndex = (currentIndex + 1) % module.levels.length;
+        const nextLevel = module.levels[nextIndex] as AccessLevel;
+
+        togglePermission(moduleId, nextLevel, isDraft);
+    };
+
     const toggleStatus = (id: string) => {
-        setUsers(users.map(u => u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } : u));
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } : u));
     };
 
     const deleteUser = (id: string) => {
         if (window.confirm('Are you sure you want to revoke access for this user?')) {
-            setUsers(users.filter(u => u.id !== id));
+            setUsers(prev => prev.filter(u => u.id !== id));
         }
     };
 
     const stats = [
         { label: 'Total Admins', value: users.length.toString(), icon: Users, color: 'bg-blue-500' },
         { label: 'Active Sessions', value: users.filter(u => u.status === 'Active').length.toString(), icon: Key, color: 'bg-emerald-500' },
-        { label: 'Security Alerts', value: '0', icon: ShieldAlert, color: 'bg-orange-500' },
-        { label: 'System Health', value: '100%', icon: History, color: 'bg-purple-600' }
+        { label: 'Platform Type', value: 'Enterprise', icon: ShieldCheck, color: 'bg-slate-900' },
+        { label: 'Audit Ready', value: 'Yes', icon: History, color: 'bg-purple-600' }
     ];
 
     return (
@@ -153,14 +202,28 @@ const AdminAccess: React.FC = () => {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manage platform permissions and user credentials</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center space-x-2 px-6 py-3 bg-slate-900 hover:bg-black text-white rounded-sm font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-slate-100"
-                >
-                    <UserPlus className="w-4 h-4" />
-                    <span>Invite User</span>
-                </button>
+                {canManageUsers && (
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center space-x-2 px-6 py-3 bg-slate-900 hover:bg-black text-white rounded-sm font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-slate-100"
+                    >
+                        <UserPlus className="w-4 h-4" />
+                        <span>Invite User</span>
+                    </button>
+                )}
             </div>
+
+            {isReadOnly && (
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-orange-600 p-1.5 rounded-lg">
+                        <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-black text-orange-900 uppercase">View Only Mode</p>
+                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">You have restricted access to administrator management</p>
+                    </div>
+                </div>
+            )}
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -226,15 +289,15 @@ const AdminAccess: React.FC = () => {
                                                 {item.role}
                                             </span>
                                             <p className="text-[9px] font-bold text-slate-400 truncate max-w-[150px]">
-                                                {item.permissions?.length || 0} Modules Enabled
+                                                {Object.values(item.permissions || {}).filter(l => l !== 'none').length} Modules Enabled
                                             </p>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex justify-center">
                                             <button
-                                                onClick={() => toggleStatus(item.id)}
-                                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-full transition-all border cursor-pointer ${item.status === 'Active'
+                                                onClick={() => canManageUsers && toggleStatus(item.id)}
+                                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-full transition-all border ${canManageUsers ? 'cursor-pointer' : 'cursor-default'} ${item.status === 'Active'
                                                     ? 'text-green-600 bg-green-50 border-green-100 hover:bg-green-100'
                                                     : 'text-slate-400 bg-slate-50 border-slate-100 hover:bg-slate-100'
                                                     }`}
@@ -254,18 +317,22 @@ const AdminAccess: React.FC = () => {
                                             >
                                                 <Eye className="w-4 h-4" />
                                             </button>
-                                            <button
-                                                onClick={() => setEditingUser(item)}
-                                                className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => deleteUser(item.id)}
-                                                className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-all"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {canManageUsers && (
+                                                <>
+                                                    <button
+                                                        onClick={() => setEditingUser(item)}
+                                                        className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-all"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteUser(item.id)}
+                                                        className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-all"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -283,229 +350,319 @@ const AdminAccess: React.FC = () => {
 
             {/* Invite Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 animate-in zoom-in duration-200">
-                        <div className="grid grid-cols-1 md:grid-cols-2">
-                            {/* Left Side: Basic Info */}
-                            <div className="p-8 space-y-6 bg-white">
-                                <div className="flex items-center space-x-3 mb-4">
-                                    <div className="p-2 bg-red-50 rounded-lg">
-                                        <UserPlus className="w-5 h-5 text-red-600" />
-                                    </div>
-                                    <h3 className="text-xl font-black text-slate-900 uppercase">New Administrator</h3>
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-slate-50 rounded-[24px] w-full max-w-6xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col relative animate-in fade-in zoom-in duration-300">
+                            {/* Header */}
+                            <div className="px-8 py-5 bg-gradient-to-r from-red-600 to-red-700 flex items-center justify-between shrink-0">
+                                <div>
+                                    <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-3">
+                                        <div className="bg-white/20 p-1.5 rounded-lg">
+                                            <UserPlus className="w-3 h-3 text-white" />
+                                        </div>
+                                        Authorize New System Administrator
+                                    </h2>
+                                    <p className="text-[10px] text-red-200 font-bold uppercase tracking-widest mt-0.5 ml-9">Security & Access Management</p>
                                 </div>
+                                <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"><X className="w-3.5 h-3.5" /></button>
+                            </div>
 
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</label>
-                                        <input
-                                            type="text"
-                                            className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl focus:border-red-500 outline-none text-sm font-bold"
-                                            placeholder="Rahul Kumar"
-                                            value={newUser.name}
-                                            onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                                        />
+                            <div className="flex-1 overflow-y-auto bg-slate-50">
+                                <div className="grid grid-cols-1 md:grid-cols-[1.1fr,2fr] h-full">
+                                    {/* Left Side: Basic Info */}
+                                    <div className="p-8 space-y-8 bg-white border-r border-slate-100">
+                                        <div className="space-y-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all font-bold text-slate-700 shadow-sm"
+                                                    placeholder="Rahul Kumar"
+                                                    value={newUser.name}
+                                                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Login Email</label>
+                                                <input
+                                                    type="email"
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all font-bold text-slate-700 shadow-sm"
+                                                    placeholder="rahul@nexarats.com"
+                                                    value={newUser.email}
+                                                    onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Security Password</label>
+                                                <div className="relative mt-1.5">
+                                                    <input
+                                                        type={showPassword ? 'text' : 'password'}
+                                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all font-black text-slate-700 shadow-sm tracking-widest"
+                                                        placeholder="••••••••"
+                                                        value={newUser.password}
+                                                        onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                                                    />
+                                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 hidden" />
+                                                    <button
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                    >
+                                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Designated Role</label>
+                                                <select
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all font-black text-slate-700 appearance-none shadow-sm"
+                                                    value={newUser.role}
+                                                    onChange={(e) => {
+                                                        const newRole = e.target.value;
+                                                        setNewUser(prev => ({
+                                                            ...prev,
+                                                            role: newRole,
+                                                            permissions: PERMISSION_MATRIX[newRole] || prev.permissions
+                                                        }));
+                                                    }}
+                                                >
+                                                    <option>Super Admin</option>
+                                                    <option>Admin</option>
+                                                    <option>Manager</option>
+                                                    <option>Cashier</option>
+                                                    <option>Accountant</option>
+                                                    <option>Staff</option>
+                                                    <option>Delivery Agent</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Login Email</label>
-                                        <input
-                                            type="email"
-                                            className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl focus:border-red-500 outline-none text-sm font-bold"
-                                            placeholder="rahul@nexarats.com"
-                                            value={newUser.email}
-                                            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Password</label>
-                                        <div className="relative">
-                                            <input
-                                                type={showPassword ? 'text' : 'password'}
-                                                className="w-full p-3 pl-10 bg-slate-50 border border-slate-100 rounded-xl focus:border-red-500 outline-none text-sm font-black tracking-widest"
-                                                placeholder="••••••••"
-                                                value={newUser.password}
-                                                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                                            />
-                                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+
+                                    {/* Right Side: Permissions Scope */}
+                                    <div className="p-8 bg-slate-50 flex flex-col overflow-hidden">
+                                        <div className="mb-6 flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">Module access authority</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure granular permissions</p>
+                                            </div>
+                                            <div className="px-3 py-1 bg-white border border-slate-200 rounded-full text-[9px] font-black text-slate-500 uppercase">
+                                                {ACCESS_MODULES.length} Modules
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-3 pb-4">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                                {ACCESS_MODULES.map((module) => {
+                                                    const level = newUser.permissions[module.id] || 'none';
+                                                    return (
+                                                        <div key={module.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-red-500 transition-all">
+                                                            <div className="flex flex-col min-w-0 pr-2">
+                                                                <span className="text-[10px] font-black text-slate-900 uppercase truncate mb-0.5">{module.label}</span>
+                                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic truncate">Click to cycle access</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => cyclePermission(module.id, true)}
+                                                                className={`min-w-[85px] px-3.5 py-2 rounded-xl text-[10px] font-black uppercase transition-all border shadow-sm ${level === 'manage' ? 'bg-blue-600 border-blue-600 text-white shadow-blue-100' :
+                                                                    level === 'cru' ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-100' :
+                                                                        level === 'read' ? 'bg-orange-500 border-orange-500 text-white shadow-orange-100' :
+                                                                            'bg-slate-50 border-slate-200 text-slate-400 shadow-none'
+                                                                    }`}
+                                                            >
+                                                                {level}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-auto pt-6 border-t border-slate-200 flex gap-4">
                                             <button
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                onClick={() => setIsModalOpen(false)}
+                                                className="flex-1 py-4 bg-white border-2 border-slate-200 text-slate-500 font-black text-[11px] uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
                                             >
-                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                Discard
+                                            </button>
+                                            <button
+                                                disabled={isSaving}
+                                                onClick={() => {
+                                                    setIsSaving(true);
+                                                    setTimeout(() => {
+                                                        handleInvite();
+                                                        setIsSaving(false);
+                                                    }, 800);
+                                                }}
+                                                className={`py-4 bg-red-600 text-white font-black text-[11px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-red-200 flex-[2] active:scale-[0.98] ${isSaving ? 'opacity-80 cursor-wait' : 'hover:bg-red-700'}`}
+                                            >
+                                                {isSaving ? (
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                                        Authorising...
+                                                    </div>
+                                                ) : (
+                                                    'Authorise User Access'
+                                                )}
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Designated Role</label>
-                                        <select
-                                            className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl focus:border-red-500 outline-none text-sm font-black appearance-none"
-                                            value={newUser.role}
-                                            onChange={(e) => {
-                                                const newRole = e.target.value;
-                                                setNewUser({
-                                                    ...newUser,
-                                                    role: newRole,
-                                                    permissions: PERMISSION_MATRIX[newRole] || ['dashboard']
-                                                });
-                                            }}
-                                        >
-                                            <option>Super Admin</option>
-                                            <option>Admin</option>
-                                            <option>Manager</option>
-                                            <option>Cashier</option>
-                                            <option>Accountant</option>
-                                            <option>Staff</option>
-                                            <option>Delivery Agent</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right Side: Permissions Scope */}
-                            <div className="p-8 bg-slate-50 border-l border-slate-100 flex flex-col">
-                                <div className="mb-6">
-                                    <label className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1 block">Permission Scope</label>
-                                    <h4 className="text-sm font-black text-slate-900 uppercase">Module Access Control</h4>
-                                </div>
-
-                                <div className="flex-1 space-y-3">
-                                    {ACCESS_MODULES.map((module) => (
-                                        <label key={module.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-red-200 hover:shadow-sm transition-all group">
-                                            <span className="text-xs font-bold text-slate-600 group-hover:text-red-600 transition-colors">{module.label}</span>
-                                            <div className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={newUser.permissions.includes(module.id)}
-                                                    onChange={() => togglePermission(module.id, true)}
-                                                />
-                                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-600"></div>
-                                            </div>
-                                        </label>
-                                    ))}
-                                </div>
-
-                                <div className="mt-8 flex gap-3">
-                                    <button
-                                        onClick={() => setIsModalOpen(false)}
-                                        className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleInvite}
-                                        className="flex-1 py-3 bg-red-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-200"
-                                    >
-                                        Authorise
-                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
 
-            {/* Edit User Modal (Matching new style) */}
+            {/* Edit User Modal */}
             {editingUser && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
-                        <div className="p-8 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <Edit2 className="w-5 h-5 text-red-600" />
-                                <h3 className="text-lg font-black text-slate-900 uppercase">Update Account</h3>
-                            </div>
-                            <button onClick={() => setEditingUser(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                                <X className="w-4 h-4 text-slate-500" />
-                            </button>
-                        </div>
-                        <div className="p-8 space-y-6">
-                            <div className="flex items-center space-x-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <div className="w-12 h-12 bg-red-600 text-white rounded-xl flex items-center justify-center font-black text-xl">
-                                    {editingUser.name.charAt(0)}
-                                </div>
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-slate-50 rounded-[24px] w-full max-w-6xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col relative animate-in fade-in zoom-in duration-300">
+                            {/* Header */}
+                            <div className="px-8 py-5 bg-gradient-to-r from-red-600 to-red-700 flex items-center justify-between shrink-0">
                                 <div>
-                                    <p className="text-sm font-black text-slate-900">{editingUser.name}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{editingUser.email}</p>
+                                    <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-3">
+                                        <div className="bg-white/20 p-1.5 rounded-lg">
+                                            <Edit2 className="w-3 h-3 text-white" />
+                                        </div>
+                                        Modify Administrative Authority
+                                    </h2>
+                                    <p className="text-[10px] text-red-200 font-bold uppercase tracking-widest mt-0.5 ml-9">Security Control Center</p>
                                 </div>
+                                <button onClick={() => setEditingUser(null)} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"><X className="w-3.5 h-3.5" /></button>
                             </div>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Update Level</label>
-                                    <select
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:border-red-500 outline-none text-sm font-black"
-                                        value={editingUser.role}
-                                        onChange={(e) => {
-                                            const newRole = e.target.value;
-                                            setEditingUser({
-                                                ...editingUser,
-                                                role: newRole,
-                                                permissions: PERMISSION_MATRIX[newRole] || editingUser.permissions
-                                            });
-                                        }}
-                                    >
-                                        <option>Super Admin</option>
-                                        <option>Admin</option>
-                                        <option>Manager</option>
-                                        <option>Cashier</option>
-                                        <option>Accountant</option>
-                                        <option>Staff</option>
-                                        <option>Delivery Agent</option>
-                                    </select>
-                                </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Update Password</label>
-                                    <div className="relative">
-                                        <input
-                                            type={showPassword ? 'text' : 'password'}
-                                            className="w-full p-4 pl-12 bg-slate-50 border border-slate-100 rounded-2xl focus:border-red-500 outline-none text-sm font-black tracking-widest"
-                                            value={editingUser.password || ''}
-                                            onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
-                                        />
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <button
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500 transition-colors"
-                                        >
-                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                        </button>
-                                    </div>
-                                </div>
+                            <div className="flex-1 overflow-y-auto bg-slate-50">
+                                <div className="grid grid-cols-1 md:grid-cols-[1.1fr,2fr] h-full">
+                                    {/* Left Side: Basic Info */}
+                                    <div className="p-8 space-y-8 bg-white border-r border-slate-100">
+                                        <div className="flex items-center space-x-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
+                                            <div className="w-14 h-14 bg-red-600 text-white rounded-xl flex items-center justify-center font-black text-2xl shadow-lg ring-4 ring-white">
+                                                {editingUser.name.charAt(0)}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-base font-black text-slate-900 truncate">{editingUser.name}</p>
+                                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest truncate">{editingUser.email}</p>
+                                            </div>
+                                        </div>
 
-                                <div className="space-y-4 pt-4 border-t border-slate-100">
-                                    <label className="text-[10px] font-black text-red-600 uppercase tracking-widest block">Update Permissions</label>
-                                    <div className="grid grid-cols-1 gap-2 max-h-[250px] overflow-y-auto pr-2 vyapar-scrollbar">
-                                        {ACCESS_MODULES.map((module) => (
-                                            <label key={module.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer hover:border-red-200 transition-all group">
-                                                <span className="text-[10px] font-bold text-slate-600 group-hover:text-red-600 uppercase">{module.label}</span>
-                                                <div className="relative inline-flex items-center cursor-pointer">
+                                        <div className="space-y-6 pt-2">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Designated Role</label>
+                                                <select
+                                                    className="w-full mt-1.5 px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all font-black text-slate-700 appearance-none shadow-sm"
+                                                    value={editingUser.role}
+                                                    onChange={(e) => {
+                                                        const newRole = e.target.value;
+                                                        setEditingUser(prev => prev ? {
+                                                            ...prev,
+                                                            role: newRole,
+                                                            permissions: PERMISSION_MATRIX[newRole] || prev.permissions
+                                                        } : null);
+                                                    }}
+                                                >
+                                                    <option>Super Admin</option>
+                                                    <option>Admin</option>
+                                                    <option>Manager</option>
+                                                    <option>Cashier</option>
+                                                    <option>Accountant</option>
+                                                    <option>Staff</option>
+                                                    <option>Delivery Agent</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Change Security Key</label>
+                                                <div className="relative mt-1.5">
                                                     <input
-                                                        type="checkbox"
-                                                        className="sr-only peer"
-                                                        checked={(editingUser.permissions || []).includes(module.id)}
-                                                        onChange={() => togglePermission(module.id, false)}
+                                                        type={showPassword ? 'text' : 'password'}
+                                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all font-black text-slate-700 shadow-sm tracking-widest"
+                                                        value={editingUser.password || ''}
+                                                        placeholder="Enter new password"
+                                                        onChange={(e) => setEditingUser(prev => prev ? { ...prev, password: e.target.value } : null)}
                                                     />
-                                                    <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-600"></div>
+                                                    <button
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-red-500 transition-colors"
+                                                    >
+                                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
                                                 </div>
-                                            </label>
-                                        ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side: Permissions Scope */}
+                                    <div className="p-8 bg-slate-50 flex flex-col overflow-hidden">
+                                        <div className="mb-6 flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">Access privilege control</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Adjust module permissions</p>
+                                            </div>
+                                            <div className="px-3 py-1 bg-white border border-slate-200 rounded-full text-[9px] font-black text-slate-500 uppercase">
+                                                {ACCESS_MODULES.length} Systems
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-3 pb-4">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                                {ACCESS_MODULES.map((module) => {
+                                                    const level = (editingUser.permissions || {})[module.id] || 'none';
+                                                    return (
+                                                        <div key={module.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-red-500 transition-all">
+                                                            <div className="flex flex-col min-w-0 pr-2">
+                                                                <span className="text-[10px] font-black text-slate-900 uppercase truncate mb-0.5">{module.label}</span>
+                                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic truncate">Click to cycle access</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => cyclePermission(module.id, false)}
+                                                                className={`min-w-[85px] px-3.5 py-2 rounded-xl text-[10px] font-black uppercase transition-all border shadow-sm ${level === 'manage' ? 'bg-blue-600 border-blue-600 text-white shadow-blue-100' :
+                                                                    level === 'cru' ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-100' :
+                                                                        level === 'read' ? 'bg-orange-500 border-orange-500 text-white shadow-orange-100' :
+                                                                            'bg-slate-50 border-slate-200 text-slate-400 shadow-none'
+                                                                    }`}
+                                                            >
+                                                                {level}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-auto pt-6 border-t border-slate-200">
+                                            <button
+                                                disabled={isSaving}
+                                                onClick={() => {
+                                                    if (editingUser) {
+                                                        setIsSaving(true);
+                                                        // Simulate a small delay for "wow" factor/feedback
+                                                        setTimeout(() => {
+                                                            setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
+                                                            setIsSaving(false);
+                                                            setEditingUser(null);
+                                                        }, 800);
+                                                    }
+                                                }}
+                                                className={`w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-2xl shadow-slate-200 group active:scale-[0.98] ${isSaving ? 'opacity-80 cursor-wait' : 'hover:bg-black'}`}
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                                        Synchronizing Authority...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ShieldCheck className="w-5 h-5 group-hover:scale-110 transition-transform text-emerald-400" />
+                                                        Commit Authority Updates
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="p-6 bg-slate-50">
-                            <button
-                                onClick={() => {
-                                    setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
-                                    setEditingUser(null);
-                                }}
-                                className="w-full py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-200"
-                            >
-                                <Save className="w-4 h-4" /> Save Authority Changes
-                            </button>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
         </div>
     );

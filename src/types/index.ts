@@ -1,4 +1,4 @@
-export type Page = 'login' | 'dashboard' | 'billing' | 'inventory' | 'customers' | 'vendors' | 'purchases' | 'expenses' | 'analytics' | 'settings' | 'reports' | 'online-store' | 'storefront' | 'admin-access';
+export type Page = 'login' | 'dashboard' | 'billing' | 'inventory' | 'customers' | 'vendors' | 'expenses' | 'analytics' | 'settings' | 'admin' | 'online-store' | 'storefront' | 'invoice:create' | 'product:manage' | 'settings:manage' | 'expense:track' | 'user:manage' | 'payment:manage' | 'audit:read' | 'inventory:adjust' | 'admin-access';
 
 export interface Product {
     id: string;
@@ -69,6 +69,7 @@ export interface Transaction {
     status: 'Paid' | 'Unpaid' | 'Partial';
     source: 'online' | 'offline';
     orderStatus?: OrderStatus;
+    paidAmount?: number;
     assignedStaff?: string;
     deliveryStatus?: string;
 }
@@ -83,13 +84,14 @@ export interface PurchaseOrder {
 
 // Phase 2: RBAC Types
 export type UserRole = 'Super Admin' | 'Admin' | 'Manager' | 'Cashier' | 'Staff' | 'Accountant' | 'Delivery Agent';
+export type AccessLevel = 'manage' | 'cru' | 'read' | 'none';
 
 export interface User {
     id: string;
     name: string;
     email: string;
     role: UserRole;
-    permissions: string[];
+    permissions: Record<string, AccessLevel>;
 }
 
 // Phase 3: Pre-Booking Types

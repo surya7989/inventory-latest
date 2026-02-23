@@ -21,7 +21,7 @@ const SecuritySettings: React.FC = () => {
             particleCount: 50,
             spread: 50,
             origin: { y: 0.6 },
-            colors: ['#EF4444', '#2563EB']
+            colors: ['#EF4444', '#0284C7']
         });
         setPasswords({ current: '', newPassword: '', confirm: '' });
         setTimeout(() => setSaved(false), 3000);

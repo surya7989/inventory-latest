@@ -23,23 +23,23 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
 
 
     const menuItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Super Admin', 'Admin', 'Manager', 'Staff', 'Accountant', 'Delivery Agent'] },
-        { id: 'billing', icon: Receipt, label: 'Billing / POS', roles: ['Super Admin', 'Admin', 'Manager', 'Staff'] },
-        { id: 'inventory', icon: Package, label: 'Inventory', roles: ['Super Admin', 'Admin', 'Manager', 'Staff'] },
-        { id: 'customers', icon: Users, label: 'Customers', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
-        { id: 'vendors', icon: Truck, label: 'Vendors', roles: ['Super Admin', 'Admin', 'Manager'] },
-        { id: 'purchases', icon: ShoppingBag, label: 'Purchases', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
-        { id: 'expenses', icon: Wallet, label: 'Expenses', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
-        { id: 'analytics', icon: BarChart3, label: 'Analytics', roles: ['Super Admin', 'Admin', 'Manager'] },
-        { id: 'reports', icon: FileText, label: 'Reports', roles: ['Super Admin', 'Admin', 'Manager', 'Accountant'] },
-        { id: 'settings', icon: Settings, label: 'Settings', roles: ['Super Admin', 'Admin'] },
-        { id: 'admin-access', icon: ShieldCheck, label: 'Admin Access', roles: ['Super Admin', 'Admin'] },
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { id: 'billing', icon: Receipt, label: 'Billing' },
+        { id: 'inventory', icon: Package, label: 'Inventory' },
+        { id: 'customers', icon: Users, label: 'Customers' },
+        { id: 'vendors', icon: Truck, label: 'Vendors' },
+        { id: 'expenses', icon: Wallet, label: 'Expenses' },
+        { id: 'analytics', icon: BarChart3, label: 'Analytics' },
+        { id: 'settings', icon: Settings, label: 'Settings' },
+        { id: 'admin', icon: ShieldCheck, label: 'Admin Access' },
     ];
 
     const filteredMenuItems = menuItems.filter(item => {
         if (!user) return true;
         if (user.role === 'Super Admin') return true;
-        return user.permissions?.includes(item.id) || user.permissions?.includes('all');
+
+        const level = user.permissions?.[item.id] || 'none';
+        return level !== 'none';
     });
 
 
@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
                 <div className="p-6 flex items-center justify-between">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">{user?.name || 'Nexarats'}INV</h2>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">NEXA POS</h2>
 
                     <button onClick={onClose} className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
                         <X className="w-3.5 h-3.5" />
@@ -92,10 +92,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, onPageChange, onLogout, i
 
                 <div className="p-4 space-y-4">
                     {/* Online Store Promo Card */}
-                    {(user?.role === 'Super Admin' || user?.permissions?.includes('online-store') || user?.permissions?.includes('all')) && (
+                    {(user?.role === 'Super Admin' || (user?.permissions?.['online-store'] && user.permissions['online-store'] !== 'none')) && (
                         <div
                             onClick={() => handlePageChange('online-store')}
-                            className={`rounded-2xl p-4 relative overflow-hidden group cursor-pointer transition-all duration-300 ${activePage === 'online-store' ? 'bg-[#EF4444] shadow-lg shadow-red-100' : 'bg-[#2563EB] shadow-lg shadow-blue-100'}`}
+                            className={`rounded-2xl p-4 relative overflow-hidden group cursor-pointer transition-all duration-300 ${activePage === 'online-store' ? 'bg-[#EF4444] shadow-lg shadow-red-100' : 'bg-primary shadow-lg shadow-sky-100'}`}
                         >
                             <div className="relative z-10 flex items-center space-x-3">
                                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">

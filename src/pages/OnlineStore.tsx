@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
     ExternalLink, ShoppingCart, TrendingUp, Package, Users,
     ChevronRight, Settings, Globe, Layout, Share2, Eye,
-    CreditCard, Truck, Clock, AlertCircle, Plus, Filter, Search
+    CreditCard, Truck, Clock, AlertCircle, Plus, Filter, Search, ShieldCheck
 } from 'lucide-react';
 import Portal from '../components/Portal';
 
-import { Transaction, Customer, OrderStatus, PreBooking } from '../types';
+import { Transaction, Customer, OrderStatus, PreBooking, User, Product } from '../types';
 
 interface OnlineStoreProps {
     onVisitStore: () => void;
@@ -15,13 +16,41 @@ interface OnlineStoreProps {
     onUpdateOrderStatus: (id: string, status: OrderStatus) => void;
     preBookings: PreBooking[];
     onUpdatePreBooking: (id: string, status: PreBooking['status']) => void;
+    user?: User | null;
+    products: Product[];
 }
 
 const OnlineStore: React.FC<OnlineStoreProps> = ({
-    onVisitStore, transactions, customers, onUpdateOrderStatus, preBookings, onUpdatePreBooking
+    onVisitStore, transactions, customers, onUpdateOrderStatus, preBookings, onUpdatePreBooking, user, products
 }) => {
+    const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['online-store'] || 'none');
+    const isReadOnly = permissionLevel === 'read';
+    const canManageStore = permissionLevel === 'manage' || permissionLevel === 'cru';
+    const canDoAdminActions = permissionLevel === 'manage';
     const [showSettings, setShowSettings] = useState(false);
     const [activeTab, setActiveTab] = useState<'orders' | 'prebookings'>('orders');
+
+    const [storeSettings, setStoreSettings] = useLocalStorage('nx_store_settings', {
+        name: 'NEXA Store',
+        domain: 'shop.nexapos.com',
+        currency: 'INR (₹) - Indian Rupee',
+        minOrder: '499',
+        isOnline: true
+    });
+
+    const [tempSettings, setTempSettings] = useState(storeSettings || { name: 'NEXA Store', isOnline: true });
+
+    // Sync temp settings when modal opens
+    React.useEffect(() => {
+        if (showSettings && storeSettings) {
+            setTempSettings(storeSettings);
+        }
+    }, [showSettings, storeSettings]);
+
+    const handleSaveSettings = () => {
+        setStoreSettings(tempSettings);
+        setShowSettings(false);
+    };
 
 
 
@@ -30,10 +59,10 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
     const totalOrdersCount = transactions.length;
 
     const stats = [
-        { label: 'Online Sales', value: `₹ ${onlineSalesTotal.toLocaleString('en-IN')}`, change: '+12.5%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Total Orders', value: totalOrdersCount.toString(), change: '+8', icon: ShoppingCart, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Active Cart', value: '15', change: '+3', icon: Package, color: 'text-orange-600', bg: 'bg-orange-50' },
-        { label: 'Store Visitors', value: '842', change: '+122', icon: Eye, color: 'text-purple-600', bg: 'bg-purple-50' },
+        { label: 'Online Sales', value: `₹ ${(onlineSalesTotal || 0).toLocaleString('en-IN')}`, change: '+0%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Total Orders', value: (totalOrdersCount || 0).toString(), change: 'Live', icon: ShoppingCart, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'Inventory Listed', value: (products?.length || 0).toString(), change: 'Active', icon: Package, color: 'text-orange-600', bg: 'bg-orange-50' },
+        { label: 'Store Status', value: storeSettings?.isOnline ? 'Live' : 'Offline', change: storeSettings?.isOnline ? 'Online' : 'Hidden', icon: Eye, color: storeSettings?.isOnline ? 'text-purple-600' : 'text-slate-400', bg: storeSettings?.isOnline ? 'bg-purple-50' : 'bg-slate-50' },
     ];
 
     // derive recent orders from transactions
@@ -60,6 +89,17 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {isReadOnly && (
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-orange-600 p-1.5 rounded-lg">
+                        <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-black text-orange-900 uppercase">View Only Mode</p>
+                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">You have restricted access to online store management</p>
+                    </div>
+                </div>
+            )}
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div>
@@ -73,13 +113,15 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setShowSettings(true)}
-                        className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-slate-100 rounded-xl font-black text-slate-600 hover:border-blue-500 hover:text-blue-600 transition-all active:scale-95 group shadow-sm"
-                    >
-                        <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform" />
-                        Store Settings
-                    </button>
+                    {canDoAdminActions && (
+                        <button
+                            onClick={() => setShowSettings(true)}
+                            className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-slate-100 rounded-xl font-black text-slate-600 hover:border-blue-500 hover:text-blue-600 transition-all active:scale-95 group shadow-sm"
+                        >
+                            <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+                            Store Settings
+                        </button>
+                    )}
                     <button
                         onClick={handleVisitStore}
                         className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 group"
@@ -162,6 +204,7 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
                                                 <td className="px-8 py-4 font-black text-sm text-slate-900">{order.amount}</td>
                                                 <td className="px-8 py-4">
                                                     <select
+                                                        disabled={!canManageStore}
                                                         value={order.status}
                                                         onChange={(e) => onUpdateOrderStatus(order.id, e.target.value as OrderStatus)}
                                                         className={`
@@ -170,6 +213,7 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
                                                             ${order.status === 'Confirmed' ? 'bg-blue-50 text-blue-600' : ''}
                                                             ${order.status === 'Shipped' ? 'bg-purple-50 text-purple-600' : ''}
                                                             ${order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-600' : ''}
+                                                            ${!canManageStore ? 'opacity-50 cursor-not-allowed' : ''}
                                                         `}
                                                     >
                                                         <option value="Pending">Pending</option>
@@ -179,14 +223,9 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
                                                         <option value="Cancelled">Cancel</option>
                                                     </select>
 
-                                                    <div className="mt-2 group-hover:block hidden">
-                                                        <select className="text-[9px] font-bold bg-slate-100 border-none rounded-lg px-2 py-1 outline-none text-slate-500">
-                                                            <option>Assign Staff</option>
-                                                            <option>John (Staff)</option>
-                                                            <option>Sarah (Manager)</option>
-                                                            <option>Mike (Delivery)</option>
-                                                        </select>
-                                                    </div>
+                                                    {isReadOnly && (
+                                                        <div className="mt-2 px-2 py-1 bg-slate-50 text-slate-400 text-[9px] font-black uppercase rounded-lg border border-slate-100 w-fit">Read Only</div>
+                                                    )}
                                                 </td>
 
                                                 <td className="px-8 py-4 text-xs font-bold text-slate-400">{order.date}</td>
@@ -219,12 +258,16 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
                                                 </td>
                                                 <td className="px-8 py-4 font-black text-sm text-slate-900">{pb.quantity}</td>
                                                 <td className="px-8 py-4">
-                                                    <button
-                                                        onClick={() => onUpdatePreBooking(pb.id, 'Confirmed')}
-                                                        className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase hover:bg-emerald-600 transition-all"
-                                                    >
-                                                        Confirm
-                                                    </button>
+                                                    {canManageStore ? (
+                                                        <button
+                                                            onClick={() => onUpdatePreBooking(pb.id, 'Confirmed')}
+                                                            className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100"
+                                                        >
+                                                            Confirm
+                                                        </button>
+                                                    ) : (
+                                                        <div className="px-3 py-1 bg-slate-50 text-slate-400 text-[9px] font-black uppercase rounded-full border border-slate-100 w-fit">Locked</div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
@@ -242,27 +285,21 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
 
                         <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
                             <Share2 className="w-5 h-5 text-purple-600" />
-                            Marketing
+                            Store Links
                         </h3>
                         <div className="space-y-4">
-                            <div className="p-4 bg-slate-50 rounded-[20px] flex items-center justify-between active:scale-95 transition-transform cursor-pointer group">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white rounded-xl border border-slate-100 flex items-center justify-center text-purple-600 shadow-sm">
-                                        <Plus className="w-4 h-4" />
-                                    </div>
-                                    <span className="text-sm font-black text-slate-700">Create Coupon</span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />
-                            </div>
-                            <div className="p-4 bg-slate-50 rounded-[20px] flex items-center justify-between active:scale-95 transition-transform cursor-pointer group">
+                            <button
+                                onClick={handleVisitStore}
+                                className="w-full p-4 bg-slate-50 rounded-[20px] flex items-center justify-between active:scale-95 transition-transform cursor-pointer group"
+                            >
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-white rounded-xl border border-slate-100 flex items-center justify-center text-blue-600 shadow-sm">
-                                        <Share2 className="w-4 h-4" />
+                                        <ExternalLink className="w-4 h-4" />
                                     </div>
-                                    <span className="text-sm font-black text-slate-700">Share Link</span>
+                                    <span className="text-sm font-black text-slate-700">Open Storefront</span>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />
-                            </div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -285,47 +322,67 @@ const OnlineStore: React.FC<OnlineStoreProps> = ({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div>
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Store Name</label>
-                                        <input className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all" placeholder="Nexarats Online Shop" />
+                                        <input
+                                            value={tempSettings.name}
+                                            onChange={(e) => setTempSettings({ ...tempSettings, name: e.target.value })}
+                                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all" placeholder="NEXA Store"
+                                        />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Custom Domain</label>
                                         <div className="relative">
-                                            <input className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all pr-12" placeholder="shop.nexarats.com" />
+                                            <input
+                                                value={tempSettings.domain}
+                                                onChange={(e) => setTempSettings({ ...tempSettings, domain: e.target.value })}
+                                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all pr-12" placeholder="shop.nexapos.com"
+                                            />
                                             <Globe className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Currency</label>
-                                        <select className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all appearance-none cursor-pointer">
+                                        <select
+                                            value={tempSettings.currency}
+                                            onChange={(e) => setTempSettings({ ...tempSettings, currency: e.target.value })}
+                                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                                        >
                                             <option>INR (₹) - Indian Rupee</option>
                                             <option>USD ($) - US Dollar</option>
                                         </select>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Order Minimum (₹)</label>
-                                        <input type="number" className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all" placeholder="499" />
+                                        <input
+                                            type="number"
+                                            value={tempSettings.minOrder}
+                                            onChange={(e) => setTempSettings({ ...tempSettings, minOrder: e.target.value })}
+                                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-blue-500 transition-all" placeholder="499"
+                                        />
                                     </div>
                                 </div>
 
                                 <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                                        <div className={`w-10 h-10 ${tempSettings.isOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} rounded-xl flex items-center justify-center`}>
                                             <AlertCircle className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-slate-900">Store is currently Live</p>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Publicly accessible</p>
+                                            <p className="text-sm font-black text-slate-900">Store is currently {tempSettings.isOnline ? 'Live' : 'Offline'}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tempSettings.isOnline ? 'Publicly accessible' : 'Hidden from customers'}</p>
                                         </div>
                                     </div>
-                                    <button className="px-6 py-3 bg-slate-100 text-slate-600 font-black rounded-xl hover:bg-slate-200 transition-all active:scale-95">
-                                        Go Offline
+                                    <button
+                                        onClick={() => setTempSettings({ ...tempSettings, isOnline: !tempSettings.isOnline })}
+                                        className={`px-6 py-3 ${tempSettings.isOnline ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'} font-black rounded-xl hover:opacity-80 transition-all active:scale-95`}
+                                    >
+                                        {tempSettings.isOnline ? 'Go Offline' : 'Go Live Now'}
                                     </button>
                                 </div>
                             </div>
 
                             <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-3">
                                 <button onClick={() => setShowSettings(false)} className="px-8 py-4 text-slate-600 font-black rounded-xl hover:bg-slate-100 transition-all">Cancel</button>
-                                <button onClick={() => setShowSettings(false)} className="px-10 py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                                <button onClick={handleSaveSettings} className="px-10 py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
                                     Save Changes
                                 </button>
                             </div>

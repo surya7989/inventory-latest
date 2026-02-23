@@ -49,7 +49,7 @@ interface AuthComponentProps {
     onGoToLogin?: () => void;
 }
 
-export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NexaratsINV", onSuccess, onGoToLogin }: AuthComponentProps) => {
+export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NEXA POS", onSuccess, onGoToLogin }: AuthComponentProps) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -247,7 +247,7 @@ export const AuthComponent = ({ logo = <DefaultLogo />, brandName = "NexaratsINV
                     </form>
 
                     <BlurFade delay={0.6}>
-                        <button onClick={onGoToLogin} className="text-xs font-bold text-slate-400 hover:text-[#2563EB] uppercase tracking-widest transition-colors">
+                        <button onClick={onGoToLogin} className="text-xs font-bold text-slate-400 hover:text-[#0284C7] uppercase tracking-widest transition-colors">
                             Already have an account? Login
                         </button>
                     </BlurFade>

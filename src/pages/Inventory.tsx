@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, Grid, List, Edit2, Trash2, X, Image as ImageIcon, Upload, TrendingUp, TrendingDown, Calculator, Eye, FileSpreadsheet, FileText, Download, Check, Tag, Package, Boxes, Shield, Camera, RefreshCw, ShieldCheck, DollarSign, Trash2 as TrashIcon, ChevronDown, Box, Scale, Droplet } from 'lucide-react';
-import { Product } from '../types';
+import { Search, Plus, Filter, Grid, List, Edit2, Trash2, X, Image as ImageIcon, Upload, TrendingUp, TrendingDown, Calculator, Eye, FileSpreadsheet, Download, Check, Tag, Package, Boxes, Shield, Camera, RefreshCw, ShieldCheck, DollarSign, Trash2 as TrashIcon, ChevronDown, Box, Scale, Droplet, Lock } from 'lucide-react';
+import { Product, User } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import Portal from '../components/Portal';
 
@@ -8,9 +8,14 @@ import Portal from '../components/Portal';
 interface InventoryProps {
     products: Product[];
     onUpdate: (products: Product[]) => void;
+    user?: User | null;
 }
 
-const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
+const Inventory: React.FC<InventoryProps> = ({ products, onUpdate, user }) => {
+    const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['inventory'] || 'none');
+    const isReadOnly = permissionLevel === 'read';
+    const canManageProducts = permissionLevel === 'manage' || permissionLevel === 'cru';
+    const canDeleteProducts = permissionLevel === 'manage' || permissionLevel === 'cru';
     const [gstConfig] = useLocalStorage('nx_gst_config', {
         defaultRate: '18',
         enableCGST: true,
@@ -216,18 +221,34 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                         )}
                     </div>
 
-                    <button
-                        onClick={() => setShowImportModal(true)}
-                        className="flex items-center space-x-2 bg-slate-100 text-slate-600 px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap hover:bg-slate-200 transition-all"
-                    >
-                        <Upload className="w-3 h-3" /><span>Import</span>
-                    </button>
+                    {canManageProducts && (
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            className="flex items-center space-x-2 bg-slate-100 text-slate-600 px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap hover:bg-slate-200 transition-all"
+                        >
+                            <Upload className="w-3 h-3" /><span>Import</span>
+                        </button>
+                    )}
 
-                    <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap shadow-lg shadow-blue-200">
-                        <Plus className="w-3 h-3" /><span>Add Product</span>
-                    </button>
+                    {canManageProducts && (
+                        <button onClick={() => setShowAddModal(true)} className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-sm font-bold text-sm whitespace-nowrap shadow-lg shadow-blue-200">
+                            <Plus className="w-3 h-3" /><span>Add Product</span>
+                        </button>
+                    )}
                 </div>
             </div>
+
+            {isReadOnly && (
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-orange-600 p-1.5 rounded-lg">
+                        <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-black text-orange-900 uppercase">View Only Mode</p>
+                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">You have restricted access to inventory management</p>
+                    </div>
+                </div>
+            )}
 
             {/* Product Display */}
             {viewMode === 'grid' ? (
@@ -242,8 +263,10 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                                         alt={p.name}
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-black text-4xl">
-                                        {p.name.charAt(0).toUpperCase()}
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50/50 text-blue-600/20 font-black relative overflow-hidden">
+                                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-400 via-transparent to-transparent"></div>
+                                        <Package className="w-12 h-12 mb-2 opacity-10" />
+                                        <span className="text-4xl relative z-10 text-blue-600/60 drop-shadow-sm">{p.name.charAt(0).toUpperCase()}</span>
                                     </div>
                                 )}
                                 <span className={`absolute top-2 right-2 px-2 py-1 rounded-sm text-[10px] font-black uppercase ${p.status === 'In Stock' ? 'bg-green-100 text-green-600' : p.status === 'Low Stock' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'
@@ -284,8 +307,15 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                                     </div>
                                 </div>
                                 <div className="flex space-x-2">
-                                    <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3 h-3" /></button>
-                                    <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3 h-3" /></button>
+                                    {canManageProducts && (
+                                        <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3 h-3" /></button>
+                                    )}
+                                    {canDeleteProducts && (
+                                        <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3 h-3" /></button>
+                                    )}
+                                    {isReadOnly && (
+                                        <button className="p-2 bg-slate-50 text-slate-400 rounded-sm cursor-not-allowed" title="Read Only Access"><Lock className="w-3 h-3" /></button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -319,7 +349,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                                                     alt={p.name}
                                                 />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-sm flex items-center justify-center bg-blue-50 text-blue-600 font-black text-lg">
+                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 font-black text-sm border border-blue-100/50 shadow-sm shadow-blue-500/5">
                                                     {p.name.charAt(0).toUpperCase()}
                                                 </div>
                                             )}
@@ -371,8 +401,15 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                                     </td>
                                     <td className="px-4 lg:px-6 py-4">
                                         <div className="flex space-x-2">
-                                            <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3 h-3" /></button>
-                                            <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3 h-3" /></button>
+                                            {canManageProducts && (
+                                                <button onClick={() => handleEdit(p)} className="p-2 bg-blue-50 text-blue-600 rounded-sm hover:bg-blue-100"><Edit2 className="w-3 h-3" /></button>
+                                            )}
+                                            {canDeleteProducts && (
+                                                <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-sm hover:bg-red-100"><Trash2 className="w-3 h-3" /></button>
+                                            )}
+                                            {isReadOnly && (
+                                                <div className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase rounded-full border border-slate-100">Locked</div>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -978,99 +1015,158 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate }) => {
                 </Portal>
             )}
             {/* Import Items Modal */}
-            {showImportModal && (
-                <Portal>
+            {
+                showImportModal && (
+                    <Portal>
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                            <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative">
+                                {/* Close Button */}
+                                <button
+                                    onClick={() => setShowImportModal(false)}
+                                    className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all z-10"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
 
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-[32px] w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col relative">
-                            {/* Close Button */}
-                            <button
-                                onClick={() => setShowImportModal(false)}
-                                className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-sm transition-all z-10"
-                            >
-                                <X className="w-3.5 h-3.5" />
-                            </button>
+                                <div className="p-8 lg:p-12">
+                                    <div className="text-center mb-10">
+                                        <h2 className="text-3xl font-black text-slate-900 mb-3">Import Items</h2>
+                                        <p className="text-slate-500 font-bold max-w-lg mx-auto">
+                                            Add products to your inventory using our Excel template.
+                                        </p>
+                                    </div>
 
-                            <div className="p-8 lg:p-12">
-                                <div className="text-center mb-10">
-                                    <h2 className="text-3xl font-black text-slate-900 mb-3">Import Items</h2>
-                                    <p className="text-slate-500 font-bold max-w-lg mx-auto">
-                                        Add products to your inventory using Excel upload, barcode scanning, or PDF import.
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                                    {/* Excel Upload Card */}
-                                    <div className="bg-white border-2 border-slate-100 rounded p-8 hover:border-green-500 transition-all group">
-                                        <div className="flex flex-col items-center text-center">
-                                            <div className="w-16 h-16 bg-green-50 rounded flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                                <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                                            </div>
-                                            <h3 className="text-xl font-black text-slate-900 mb-2">Upload from Excel</h3>
-                                            <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">Bulk import items using .xlsx or .csv files.</p>
-
-                                            <div className="w-full border-2 border-dashed border-slate-200 rounded py-12 px-6 flex flex-col items-center justify-center mb-6 hover:bg-slate-50 cursor-pointer transition-colors group/drop">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover/drop:bg-blue-100 group-hover/drop:text-blue-600 transition-colors">
-                                                    <Upload className="w-3.5 h-3.5 text-slate-400" />
+                                    <div className="space-y-8 mb-10">
+                                        {/* Excel Upload Card */}
+                                        <div className="bg-white border-2 border-slate-100 rounded p-8 hover:border-green-500 transition-all group">
+                                            <div className="flex flex-col items-center text-center">
+                                                <div className="w-16 h-16 bg-green-50 rounded flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                                    <FileSpreadsheet className="w-4 h-4 text-green-600" />
                                                 </div>
-                                                <p className="text-sm font-black text-slate-900">Drag & drop your file here</p>
-                                                <p className="text-xs font-bold text-slate-400 mt-1">or click to browse</p>
+                                                <h3 className="text-xl font-black text-slate-900 mb-2">Upload Inventory Sheet</h3>
+                                                <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">Bulk import items using .csv files.</p>
+
+                                                <input
+                                                    type="file"
+                                                    id="excel-import"
+                                                    className="hidden"
+                                                    accept=".csv"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const reader = new FileReader();
+                                                            reader.onload = (event) => {
+                                                                const text = event.target?.result as string;
+                                                                const lines = text.split('\n');
+                                                                const headers = lines[0].split(',');
+                                                                const newProducts: Product[] = [];
+
+                                                                for (let i = 1; i < lines.length; i++) {
+                                                                    if (!lines[i].trim()) continue;
+                                                                    const values = lines[i].split(',');
+                                                                    const p: any = {};
+                                                                    headers.forEach((h, idx) => {
+                                                                        const key = h.trim().toLowerCase().replace(/ /g, '');
+                                                                        let val: any = values[idx]?.trim();
+
+                                                                        // Mapping human headers to keys
+                                                                        const mapping: Record<string, string> = {
+                                                                            'name': 'name',
+                                                                            'category': 'category',
+                                                                            'sku': 'sku',
+                                                                            'hsncode': 'hsnCode',
+                                                                            'mrp': 'mrp',
+                                                                            'sellingprice': 'price',
+                                                                            'purchaseprice': 'purchasePrice',
+                                                                            'gstrate': 'gstRate',
+                                                                            'taxtype': 'taxType',
+                                                                            'stock': 'stock',
+                                                                            'minstock': 'minStock',
+                                                                            'unit': 'unit',
+                                                                            'expirydate': 'expiryDate',
+                                                                            'returns': 'returns',
+                                                                            'imageurl': 'image'
+                                                                        };
+
+                                                                        const targetKey = mapping[key] || key;
+                                                                        if (['price', 'purchasePrice', 'stock', 'mrp', 'gstRate', 'minStock'].includes(targetKey)) {
+                                                                            val = parseFloat(val) || 0;
+                                                                        }
+                                                                        p[targetKey] = val;
+                                                                    });
+
+                                                                    const stock = parseInt(p.stock) || 0;
+                                                                    const minStock = parseInt(p.minStock) || 10;
+
+                                                                    newProducts.push({
+                                                                        ...p,
+                                                                        id: Math.random().toString(36).substr(2, 9),
+                                                                        status: stock === 0 ? 'Out of Stock' : stock <= minStock ? 'Low Stock' : 'In Stock',
+                                                                        discountPercentage: (p.mrp > p.price) ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0,
+                                                                        profit: (p.price - p.purchasePrice)
+                                                                    });
+                                                                }
+
+                                                                if (newProducts.length > 0) {
+                                                                    if (window.confirm(`Found ${newProducts.length} items. Import them into inventory?`)) {
+                                                                        onUpdate([...products, ...newProducts]);
+                                                                        setShowImportModal(false);
+                                                                    }
+                                                                }
+                                                            };
+                                                            reader.readAsText(file);
+                                                        }
+                                                    }}
+                                                />
+
+                                                <label
+                                                    htmlFor="excel-import"
+                                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black shadow-lg shadow-blue-100 transition-all mb-4 cursor-pointer flex items-center justify-center space-x-2"
+                                                >
+                                                    <Upload className="w-4 h-4" />
+                                                    <span>Upload CSV File</span>
+                                                </label>
+
+                                                <button
+                                                    onClick={() => {
+                                                        const headers = ['Name', 'Category', 'SKU', 'HSN Code', 'MRP', 'Selling Price', 'Purchase Price', 'GST Rate', 'Tax Type', 'Stock', 'Min Stock', 'Unit', 'Expiry Date', 'Returns', 'Image URL'];
+                                                        const csvContent = "data:text/csv;charset=utf-8,"
+                                                            + headers.join(",") + "\n";
+                                                        const encodedUri = encodeURI(csvContent);
+                                                        const link = document.createElement("a");
+                                                        link.setAttribute("href", encodedUri);
+                                                        link.setAttribute("download", "nexa_inventory_template.csv");
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        document.body.removeChild(link);
+                                                    }}
+                                                    className="flex items-center space-x-2 text-blue-600 font-black text-sm hover:underline"
+                                                >
+                                                    <Download className="w-3 h-3" />
+                                                    <span>Download Template (.csv)</span>
+                                                </button>
+                                                <p className="text-[10px] font-bold text-slate-400 mt-6 uppercase tracking-widest leading-loose">Supported format: .csv | Max file size: 5MB</p>
                                             </div>
-
-                                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black shadow-lg shadow-blue-100 transition-all mb-4">
-                                                Upload File
-                                            </button>
-
-                                            <button className="flex items-center space-x-2 text-blue-600 font-black text-sm hover:underline">
-                                                <Download className="w-3 h-3" />
-                                                <span>Download Excel Template</span>
-                                            </button>
-                                            <p className="text-[10px] font-bold text-slate-400 mt-6 uppercase tracking-widest leading-loose">Supported formats: .xlsx, .csv | Max file size: 5MB</p>
                                         </div>
                                     </div>
 
-                                    {/* PDF Upload Card */}
-                                    <div className="bg-white border-2 border-slate-100 rounded p-8 hover:border-blue-500 transition-all group">
-                                        <div className="flex flex-col items-center text-center">
-                                            <div className="w-16 h-16 bg-red-50 rounded flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                                <FileText className="w-4 h-4 text-red-600" />
+                                    <div className="flex items-center justify-center pt-8 border-t border-slate-100">
+                                        <label className="flex items-center space-x-3 cursor-pointer group">
+                                            <div
+                                                onClick={() => setReviewBeforeImport(!reviewBeforeImport)}
+                                                className={`w-5 h-5 rounded-sm flex items-center justify-center border-2 transition-all ${reviewBeforeImport ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'border-slate-300'}`}
+                                            >
+                                                {reviewBeforeImport && <Check className="w-3 h-3" />}
                                             </div>
-                                            <h3 className="text-xl font-black text-slate-900 mb-2">Import from PDF</h3>
-                                            <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">Upload product lists in PDF format and extract items automatically.</p>
-
-                                            <div className="w-full border-2 border-dashed border-slate-200 rounded py-12 px-6 flex flex-col items-center justify-center mb-6 hover:bg-slate-50 cursor-pointer transition-colors group/drop">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover/drop:bg-blue-100 group-hover/drop:text-blue-600 transition-colors">
-                                                    <Upload className="w-3.5 h-3.5 text-slate-400" />
-                                                </div>
-                                                <p className="text-sm font-black text-slate-900">Drag & drop PDF here</p>
-                                                <p className="text-xs font-bold text-slate-400 mt-1">or click to browse</p>
-                                            </div>
-
-                                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-black shadow-lg shadow-blue-100 transition-all mb-4">
-                                                Upload PDF
-                                            </button>
-                                            <div className="mt-8 invisible md:visible">.</div>
-                                            <p className="text-[10px] font-bold text-slate-400 mt-6 uppercase tracking-widest leading-loose">Supported: .pdf | Max: 10MB</p>
-                                        </div>
+                                            <span className="text-sm font-black text-slate-700 group-hover:text-blue-600 transition-colors">Review items before final import</span>
+                                        </label>
                                     </div>
-                                </div>
-
-                                <div className="flex items-center justify-center pt-8 border-t border-slate-100">
-                                    <label className="flex items-center space-x-3 cursor-pointer group">
-                                        <div
-                                            onClick={() => setReviewBeforeImport(!reviewBeforeImport)}
-                                            className={`w-5 h-5 rounded-sm flex items-center justify-center border-2 transition-all ${reviewBeforeImport ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'border-slate-300'}`}
-                                        >
-                                            {reviewBeforeImport && <Check className="w-3 h-3" />}
-                                        </div>
-                                        <span className="text-sm font-black text-slate-700 group-hover:text-blue-600 transition-colors">Review items before final import</span>
-                                    </label>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </Portal>
-            )}
+                    </Portal>
+                )
+            }
         </div>
     );
 };

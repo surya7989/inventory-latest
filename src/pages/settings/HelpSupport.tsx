@@ -4,9 +4,9 @@ import confetti from 'canvas-confetti';
 
 const faqs = [
     { q: 'How do I add a new product to inventory?', a: 'Go to Inventory page → Click "Add Product" → Fill in the details including name, price, stock quantity, and GST rate → Click Save.' },
-    { q: 'How do I generate a bill/invoice?', a: 'Navigate to Billing / POS → Search and add products to cart → Click "Proceed to Payment" → Select payment method → Confirm payment.' },
+    { q: 'How do I generate a bill/invoice?', a: 'Navigate to Billing → Search and add products to cart → Click "Proceed to Payment" → Select payment method → Confirm payment.' },
     { q: 'How do I configure GST rates?', a: 'Go to Settings → GST Configuration → Set your GSTIN, default rate, and enable/disable CGST, SGST, and IGST components.' },
-    { q: 'Can I export my data?', a: 'Yes! Go to Reports → Select the report type → Choose date range → Click "Export PDF" or "Export Excel" to download.' },
+    { q: 'Can I export my data?', a: 'Yes! Go to Analytics → Select the report type → Choose date range → Click "Export PDF" or "Export Excel" to download.' },
     { q: 'How do I manage customer payments?', a: 'Go to Customers page → Find the customer → View their payment history and pending amounts. You can track partial payments and update status.' },
     { q: 'How do I set up WhatsApp notifications?', a: 'Go to Settings → WhatsApp → Enter your WhatsApp Business number → Enable the message types you want (order confirmation, payment receipt, etc.).' },
 ];

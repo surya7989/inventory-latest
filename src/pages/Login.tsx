@@ -45,10 +45,10 @@ const WarehouseIllustration = () => (
         <rect x="375" y="132" width="22" height="23" rx="2" fill="#D4813A" />
         <rect x="405" y="140" width="18" height="15" rx="2" fill="#E8923A" />
 
-        <rect x="295" y="175" width="22" height="25" rx="2" fill="#5B9BD5" />
-        <rect x="322" y="178" width="18" height="22" rx="2" fill="#4A87C0" />
-        <rect x="348" y="173" width="25" height="27" rx="2" fill="#5B9BD5" />
-        <rect x="380" y="180" width="20" height="20" rx="2" fill="#4A87C0" />
+        <rect x="295" y="175" width="22" height="25" rx="2" fill="#7DD3FC" />
+        <rect x="322" y="178" width="18" height="22" rx="2" fill="#38BDF8" />
+        <rect x="348" y="173" width="25" height="27" rx="2" fill="#7DD3FC" />
+        <rect x="380" y="180" width="20" height="20" rx="2" fill="#38BDF8" />
 
         <rect x="295" y="220" width="25" height="25" rx="2" fill="#70B868" />
         <rect x="325" y="222" width="20" height="23" rx="2" fill="#5EA050" />
@@ -71,7 +71,7 @@ const WarehouseIllustration = () => (
 
         {/* Worker 1 - standing near shelves */}
         <circle cx="340" cy="315" r="10" fill="#F5C882" />
-        <rect x="330" y="325" width="20" height="30" rx="4" fill="#3B82F6" />
+        <rect x="330" y="325" width="20" height="30" rx="4" fill="#0284C7" />
         <rect x="333" y="355" width="6" height="20" rx="2" fill="#2D5A8A" />
         <rect x="343" y="355" width="6" height="20" rx="2" fill="#2D5A8A" />
         <rect x="333" y="308" width="14" height="6" rx="2" fill="#F4A940" />
@@ -104,7 +104,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [email, setEmail] = useState('admin@nexarats.com');
     const [password, setPassword] = useState('admin123');
     const [error, setError] = useState('');
-    const [viewCreds, setViewCreds] = useState<{ name: string; email: string; pass: string; role: string } | null>(null);
+    const [viewCreds, setViewCreds] = useState<{ name: string; email: string; pass: string; role: string; perms: Record<string, string> } | null>(null);
 
     React.useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -113,13 +113,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         const isViewMode = params.get('view_creds') === 'true';
         const urlName = params.get('name');
         const urlRole = params.get('role');
+        const urlPerms = params.get('perms');
 
         if (isViewMode && urlEmail && urlPassword) {
+            let parsedPerms = {};
+            try {
+                if (urlPerms) parsedPerms = JSON.parse(decodeURIComponent(urlPerms));
+            } catch (e) {
+                console.error("Failed to parse permissions", e);
+            }
+
             setViewCreds({
                 name: decodeURIComponent(urlName || 'Administrator'),
                 email: decodeURIComponent(urlEmail),
                 pass: decodeURIComponent(urlPassword),
-                role: decodeURIComponent(urlRole || 'Admin')
+                role: decodeURIComponent(urlRole || 'Admin'),
+                perms: parsedPerms
             });
         } else {
             if (urlEmail) setEmail(decodeURIComponent(urlEmail));
@@ -143,19 +152,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             const storedAdmins = storedAdminsStr ? JSON.parse(storedAdminsStr) : [];
 
             // Default Super Admin
-            const isDefaultAdmin = email === 'admin@nexarats.com' && password === 'admin123';
+            const isDefaultAdmin = (email === 'admin@nexarats.com' || email === 'admin@nexapos.com') && password === 'admin123';
 
             // Find in invited admins
             const invitedAdmin = storedAdmins.find((u: any) => u.email === email && u.password === password);
 
             if (isDefaultAdmin) {
+                // Map all ACCESS_MODULES to 'manage' for super admin
+                const superAdminPerms: Record<string, any> = {};
+                // ACCESS_MODULES is not imported here, but we can use 'manage' for all known IDs
+                // or just handle the logic in Sidebar/App to treat 'all' or empty as full if role is Super Admin.
+                // However, let's try to be consistent.
+
                 onLogin({
                     id: 'ADMIN-001',
-                    name: 'Nexarats Admin',
-                    email: 'admin@nexarats.com',
+                    name: 'NEXA Admin',
+                    email: 'admin@nexapos.com',
                     role: 'Super Admin',
-                    permissions: ['all']
-                } as any);
+                    permissions: {} // Sidebar handles Super Admin case specifically
+                });
             } else if (invitedAdmin) {
                 if (invitedAdmin.status !== 'Active') {
                     setError('Your account has been deactivated. Please contact Super Admin.');
@@ -167,8 +182,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     name: invitedAdmin.name,
                     email: invitedAdmin.email,
                     role: invitedAdmin.role,
-                    permissions: invitedAdmin.permissions || ['dashboard']
-                } as any);
+                    permissions: invitedAdmin.permissions || {}
+                });
             } else {
                 setError('Invalid email or password. Please try again.');
                 setLoading(false);
@@ -186,9 +201,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <div className="bg-blue-600 rounded-lg p-2">
                             <LayoutGrid className="w-3.5 h-3.5 text-white" />
                         </div>
-                        <span className="text-xl font-bold text-gray-800 tracking-tight">
-                            Nexarats
-                        </span>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">NEXA POS</h2>
                     </div>
 
                     <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] mb-6">
@@ -244,7 +257,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Designated Role</label>
-                                        <p className="text-xs font-black text-white bg-slate-900 px-3 py-1 rounded-full w-fit uppercase tracking-wider">{viewCreds.role}</p>
+                                        <p className="text-xs font-black text-white bg-slate-900 px-3 py-1 rounded-full w-fit uppercase tracking-wider mb-4">{viewCreds.role}</p>
+
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 border-t border-slate-200 pt-4">Module Access Scopes</label>
+                                        <div className="grid grid-cols-1 gap-1.5 max-h-[160px] overflow-y-auto pr-2 vyapar-scrollbar">
+                                            {Object.entries(viewCreds.perms).filter(([_, level]) => level !== 'none').map(([id, level]) => (
+                                                <div key={id} className="flex items-center justify-between text-[10px] bg-white p-2 rounded-lg border border-slate-100">
+                                                    <span className="font-extrabold text-slate-600 uppercase tracking-tight">{id.replace(':', ' ')}</span>
+                                                    <span className={`font-black uppercase tracking-widest ${level === 'manage' ? 'text-blue-600' :
+                                                        level === 'cru' ? 'text-emerald-500' :
+                                                            level === 'read' ? 'text-orange-500' : 'text-slate-400'
+                                                        }`}>{level}</span>
+                                                </div>
+                                            ))}
+                                            {Object.keys(viewCreds.perms).length === 0 && (
+                                                <p className="text-[10px] font-bold text-slate-400 italic">No specific permissions assigned.</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

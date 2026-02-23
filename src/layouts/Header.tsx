@@ -13,7 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, onToggleSidebar, user }) => {
     const [profile] = useLocalStorage('inv_admin_profile', {
-        name: 'Nexarats',
+        name: 'NEXA Admin',
         avatar: ''
     });
 
@@ -21,18 +21,27 @@ const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, onToggleSideb
     const displayName = profile.name.split(' ')[0] || user?.name?.split(' ')[0] || 'Admin';
 
 
-    const titles: Record<Page, { title: string; subtitle: string }> = {
+    const titles: Partial<Record<Page, { title: string; subtitle: string }>> = {
         dashboard: { title: 'Dashboard', subtitle: `Welcome back, ${displayName}. Here's what's happening today.` },
-        billing: { title: 'Billing Dashboard', subtitle: 'Dashboard > Billing' },
-
-        inventory: { title: 'Inventory Dashboard', subtitle: 'Track stock levels, movement, and profitability' },
+        'invoice:create': { title: 'Billing Dashboard', subtitle: 'Dashboard > Billing' },
+        'product:manage': { title: 'Inventory Dashboard', subtitle: 'Track stock levels, movement, and profitability' },
         customers: { title: 'Customer Management', subtitle: 'Manage and track all your customers in one place.' },
         vendors: { title: 'Vendors', subtitle: 'Manage vendor accounts, payment history, and outstanding amounts.' },
         analytics: { title: 'Analytics Dashboard', subtitle: 'Overview of product, customer, and vendor performance' },
-        settings: { title: 'Settings', subtitle: 'Manage your business information' },
+        'settings:manage': { title: 'Settings', subtitle: 'Manage your business information' },
         reports: { title: 'Reports', subtitle: 'Generate and export business reports' },
+        'expense:track': { title: 'Business Expenses', subtitle: 'Track and manage your operational costs' },
         'online-store': { title: 'Online Store Management', subtitle: 'Manage your digital storefront and orders' },
-        storefront: { title: 'Nexarats Storefront', subtitle: 'Customer-facing ordering portal' },
+        storefront: { title: 'NEXA POS Storefront', subtitle: 'Customer-facing ordering portal' },
+        'user:manage': { title: 'Admin Access', subtitle: 'Manage system administrators and permissions' },
+        'payment:manage': { title: 'Payment Management', subtitle: 'Track and manage all payments' },
+        'audit:read': { title: 'Audit Logs', subtitle: 'View system audit trail and activity logs' },
+        'inventory:adjust': { title: 'Inventory Adjustment', subtitle: 'Adjust stock levels and manage inventory' },
+        // Legacy aliases kept as fallback
+        billing: { title: 'Billing Dashboard', subtitle: 'Dashboard > Billing' },
+        inventory: { title: 'Inventory Dashboard', subtitle: 'Track stock levels, movement, and profitability' },
+        expenses: { title: 'Business Expenses', subtitle: 'Track and manage your operational costs' },
+        settings: { title: 'Settings', subtitle: 'Manage your business information' },
         'admin-access': { title: 'Admin Access', subtitle: 'Manage system administrators and permissions' },
         login: { title: '', subtitle: '' },
     };
@@ -41,7 +50,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, onToggleSideb
     const { title, subtitle } = titles[activePage] || { title: 'Page', subtitle: '' };
 
     return (
-        <header className="relative z-0 h-16 lg:h-20 bg-white shadow-sm px-4 lg:px-8 flex items-center justify-between shrink-0">
+        <header className="h-16 lg:h-20 bg-white shadow-sm px-4 lg:px-8 flex items-center justify-between shrink-0">
             <div className="flex items-center space-x-4">
                 <button
                     onClick={onToggleSidebar}
@@ -79,7 +88,7 @@ const Header: React.FC<HeaderProps> = ({ activePage, onPageChange, onToggleSideb
 
 
                 <button
-                    onClick={() => onPageChange('settings')}
+                    onClick={() => onPageChange('settings:manage')}
                     className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors group"
                     title="Go to Settings"
                 >

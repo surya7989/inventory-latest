@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
-import { Search, Plus, Minus, Trash2, CheckCircle2, CreditCard, Smartphone, Receipt, Coins, X, ChevronRight, LayoutGrid, LayoutList, Building2, ArrowLeftRight, User, Phone, Printer, Send, Copy, Calendar, ArrowLeft, HelpCircle, ShieldCheck, MapPin, Mail } from 'lucide-react';
-import { Product, CartItem, PaymentMethod, Transaction } from '../types';
+import { Search, Plus, Minus, Trash2, CheckCircle2, CreditCard, Smartphone, Receipt, Coins, X, ChevronRight, LayoutGrid, LayoutList, Building2, ArrowLeftRight, User as UserIcon, Phone, Printer, Send, Copy, Calendar, ArrowLeft, HelpCircle, ShieldCheck, MapPin, Mail, Lock as LockIcon } from 'lucide-react';
+import { Product, CartItem, PaymentMethod, Transaction, User } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import ThemedInvoice from '../components/ThemedInvoice';
 import Portal from '../components/Portal';
 
 interface BillingProps {
     products: Product[];
-    onSaleSuccess: (cart: CartItem[], total: number, gstAmount: number, customerName?: string, customerPhone?: string) => void;
+    onSaleSuccess: (cart: CartItem[], total: number, gstAmount: number, customerName?: string, customerPhone?: string, address?: string, source?: 'online' | 'offline', paidAmount?: number) => void;
+    user?: User | null;
 }
 
-const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
+const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess, user }) => {
+    const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['billing'] || 'none');
+    const isReadOnly = permissionLevel === 'read';
+    const canCreateInvoices = permissionLevel === 'manage' || permissionLevel === 'cru';
+    const canManageInvoices = permissionLevel === 'manage' || permissionLevel === 'cru';
     const [gstConfig] = useLocalStorage('nx_gst_config', {
         defaultRate: '18',
         enableCGST: true,
@@ -53,7 +58,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
     });
 
     const invoiceThemes: Record<string, { primary: string; accent: string }> = {
-        vy_classic: { primary: '#1E3A8A', accent: '#3B82F6' },
+        vy_classic: { primary: '#0EA5E9', accent: '#38BDF8' },
         vy_stylish: { primary: '#701A75', accent: '#D946EF' },
         vy_elegant: { primary: '#7F1D1D', accent: '#EF4444' },
         vy_pro: { primary: '#111827', accent: '#F59E0B' },
@@ -168,7 +173,8 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
         };
         setTxnInfo(info);
         setIsSuccess(true);
-        onSaleSuccess(cart, grandTotal, finalGST, customerName, customerPhone);
+        // Pass cashReceived as paidAmount to track debt/pending balance
+        onSaleSuccess(cart, grandTotal, finalGST, customerName, customerPhone, '', 'offline', cashReceived);
     };
 
     const resetBilling = () => {
@@ -219,6 +225,18 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                     </div>
                 </div>
 
+                {isReadOnly && (
+                    <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 mb-6">
+                        <div className="bg-orange-600 p-1.5 rounded-lg">
+                            <ShieldCheck className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-orange-900 uppercase">Billing Locked (Read Only)</p>
+                            <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">You can browse items but cannot create new invoices</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Product Display Area */}
                 <div className="flex-1 overflow-y-auto pr-2 vyapar-scrollbar">
                     {viewMode === 'grid' ? (
@@ -233,7 +251,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                                 alt={p.name}
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-600 font-black text-4xl">
+                                            <div className="w-full h-full flex items-center justify-center bg-sky-50 text-sky-600 font-black text-4xl">
                                                 {p.name.charAt(0).toUpperCase()}
                                             </div>
                                         )}
@@ -262,7 +280,13 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <button onClick={() => addToCart(p)} className="p-2 bg-blue-600 text-white rounded-sm shadow-lg shadow-blue-100"><Plus className="w-3.5 h-3.5" /></button>
+                                        <button
+                                            disabled={isReadOnly}
+                                            onClick={() => addToCart(p)}
+                                            className={`p-2 rounded-sm shadow-lg ${isReadOnly ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-primary text-white shadow-sky-100'}`}
+                                        >
+                                            {isReadOnly ? <LockIcon className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -314,7 +338,13 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                                             </td>
                                             <td className="px-4 lg:px-6 py-4 font-black">{p.stock}</td>
                                             <td className="px-4 lg:px-6 py-4">
-                                                <button onClick={() => addToCart(p)} className="p-2 bg-blue-600 text-white rounded-sm"><Plus className="w-3 h-3" /></button>
+                                                <button
+                                                    disabled={isReadOnly}
+                                                    onClick={() => addToCart(p)}
+                                                    className={`p-2 rounded-sm ${isReadOnly ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white'}`}
+                                                >
+                                                    {isReadOnly ? <LockIcon className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -337,7 +367,7 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                 <div className="p-4 lg:p-6 border-b border-slate-100 flex items-center justify-between">
                     <h3 className="text-lg font-black text-slate-900">Bill Summary</h3>
                     <div className="flex items-center space-x-3">
-                        <button onClick={() => setCart([])} className="text-xs font-bold text-red-500 uppercase tracking-widest hover:underline">Clear All</button>
+                        {canManageInvoices && <button onClick={() => setCart([])} className="text-xs font-bold text-red-500 uppercase tracking-widest hover:underline">Clear All</button>}
                         <button onClick={() => setShowCart(false)} className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
                     </div>
                 </div>
@@ -436,339 +466,346 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess }) => {
                         </div>
                     </div>
                     <button
-                        disabled={cart.length === 0}
+                        disabled={cart.length === 0 || isReadOnly}
                         onClick={handleProceedToPayment}
-                        className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-black py-4 lg:py-5 rounded flex items-center justify-center space-x-3 shadow-xl transition-all disabled:opacity-50"
+                        className={`w-full font-black py-4 lg:py-5 rounded flex items-center justify-center space-x-3 shadow-xl transition-all ${isReadOnly ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' : 'bg-[#10B981] hover:bg-[#059669] text-white'
+                            }`}
                     >
-                        <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                        <span>Proceed to Payment</span>
+                        {isReadOnly ? <LockIcon className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> : <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+                        <span>{isReadOnly ? 'Billing Restricted' : 'Proceed to Payment'}</span>
                     </button>
                 </div>
             </div>
             {/* Customer Info Modal */}
             {showCustomerInfo && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 lg:p-6">
-                    <div className="bg-white rounded w-full max-w-md shadow-2xl overflow-hidden relative">
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setShowCustomerInfo(false)}
-                            className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-sm transition-all"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-white/20 rounded flex items-center justify-center mb-4">
-                                <User className="w-3.5 h-3.5 text-white" />
-                            </div>
-                            <h2 className="text-2xl font-black text-white">Customer Details</h2>
-                            <p className="text-blue-200 text-sm font-medium mt-1">Enter customer information</p>
-                        </div>
-
-                        {/* Form */}
-                        <div className="p-6 lg:p-8 space-y-5">
-                            {/* Customer Name */}
-                            <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                                    Customer Name
-                                </label>
-                                <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        value={customerName}
-                                        onChange={(e) => setCustomerName(e.target.value)}
-                                        placeholder="Enter customer name"
-                                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-sm text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Phone Number */}
-                            <div>
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                                    Phone Number
-                                </label>
-                                <div className="relative">
-                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                    <input
-                                        type="tel"
-                                        value={customerPhone}
-                                        onChange={(e) => setCustomerPhone(e.target.value)}
-                                        placeholder="Enter phone number"
-                                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-sm text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Bill Amount Preview */}
-                            <div className="p-4 bg-green-50 rounded-sm border border-green-100 flex justify-between items-center">
-                                <span className="text-sm font-bold text-green-700">Bill Amount</span>
-                                <span className="text-xl font-black text-green-700">₹{grandTotal.toLocaleString()}</span>
-                            </div>
-
-                            {/* Continue Button */}
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 lg:p-6">
+                        <div className="bg-white rounded w-full max-w-md shadow-2xl overflow-hidden relative">
+                            {/* Close Button */}
                             <button
-                                onClick={handleCustomerInfoSubmit}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-sm flex items-center justify-center space-x-3 shadow-lg shadow-blue-200/50 transition-all text-sm"
+                                onClick={() => setShowCustomerInfo(false)}
+                                className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-sm transition-all"
                             >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Continue to Payment</span>
+                                <X className="w-3.5 h-3.5" />
                             </button>
 
-                            {/* Skip Option */}
-                            <button
-                                onClick={() => {
-                                    setShowCustomerInfo(false);
-                                    setShowPayment(true);
-                                    setCashReceived(grandTotal);
-                                }}
-                                className="w-full text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest py-2 transition-colors"
-                            >
-                                Skip — Continue without customer info
-                            </button>
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 flex flex-col items-center">
+                                <div className="w-16 h-16 bg-white/20 rounded flex items-center justify-center mb-4">
+                                    <UserIcon className="w-3.5 h-3.5 text-white" />
+                                </div>
+                                <h2 className="text-2xl font-black text-white">Customer Details</h2>
+                                <p className="text-blue-200 text-sm font-medium mt-1">Enter customer information</p>
+                            </div>
+
+                            {/* Form */}
+                            <div className="p-6 lg:p-8 space-y-5">
+                                {/* Customer Name */}
+                                <div>
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                                        Customer Name
+                                    </label>
+                                    <div className="relative">
+                                        <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={customerName}
+                                            onChange={(e) => setCustomerName(e.target.value)}
+                                            placeholder="Enter customer name"
+                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-sm text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Phone Number */}
+                                <div>
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                                        Phone Number
+                                    </label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <input
+                                            type="tel"
+                                            value={customerPhone}
+                                            onChange={(e) => setCustomerPhone(e.target.value)}
+                                            placeholder="Enter phone number"
+                                            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-sm text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Bill Amount Preview */}
+                                <div className="p-4 bg-green-50 rounded-sm border border-green-100 flex justify-between items-center">
+                                    <span className="text-sm font-bold text-green-700">Bill Amount</span>
+                                    <span className="text-xl font-black text-green-700">₹{grandTotal.toLocaleString()}</span>
+                                </div>
+
+                                {/* Continue Button */}
+                                <button
+                                    onClick={handleCustomerInfoSubmit}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-sm flex items-center justify-center space-x-3 shadow-lg shadow-blue-200/50 transition-all text-sm"
+                                >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Continue to Payment</span>
+                                </button>
+
+                                {/* Skip Option */}
+                                <button
+                                    onClick={() => {
+                                        setShowCustomerInfo(false);
+                                        setShowPayment(true);
+                                        setCashReceived(grandTotal);
+                                    }}
+                                    className="w-full text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest py-2 transition-colors"
+                                >
+                                    Skip — Continue without customer info
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
 
             {/* Payment Modal */}
             {showPayment && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 lg:p-6">
-                    <div className="bg-white rounded lg:rounded-[40px] w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col lg:flex-row relative">
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setShowPayment(false)}
-                            className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-sm transition-all"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 lg:p-6">
+                        <div className="bg-white rounded lg:rounded-[40px] w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col lg:flex-row relative">
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowPayment(false)}
+                                className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-sm transition-all"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
 
-                        {/* Sidebar for Payment Methods */}
-                        <div className="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-slate-100 p-4 lg:p-8 space-y-2 lg:space-y-4 flex lg:flex-col overflow-x-auto lg:overflow-x-visible">
-                            <h3 className="hidden lg:block text-lg font-black text-slate-900 mb-4 lg:mb-8">Select Payment</h3>
-                            {[
-                                { id: 'cash', label: 'Offline (Cash)', icon: Coins },
-                                { id: 'upi', label: 'Online (UPI)', icon: Smartphone },
-                                { id: 'card', label: 'Online (Card)', icon: CreditCard },
-                                { id: 'split', label: 'Online (Split)', icon: ArrowLeftRight },
-                                { id: 'bank_transfer', label: 'Online (Bank)', icon: Building2 },
-                            ].map(method => (
-                                <button
-                                    key={method.id}
-                                    onClick={() => setPaymentMode(method.id as PaymentMethod)}
-                                    className={`flex-shrink-0 lg:w-full flex items-center justify-between p-3 lg:p-5 rounded-sm lg:rounded border-2 transition-all ${paymentMode === method.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'
-                                        }`}
-                                >
-                                    <div className="flex items-center space-x-3 lg:space-x-4">
-                                        <method.icon className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                                        <span className="font-black text-xs lg:text-sm">{method.label}</span>
-                                    </div>
-                                    <ChevronRight className="w-3 h-3 hidden lg:block" />
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Dynamic Content */}
-                        <div className="flex-1 p-6 lg:p-12 bg-white flex flex-col overflow-y-auto">
-                            <div className="flex-1">
-                                {paymentMode === 'cash' && (
-                                    <div className="space-y-6 lg:space-y-8">
-                                        <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Cash Payment</h2>
-                                        <div className="space-y-4">
-                                            <label className="block text-sm font-black text-slate-500 uppercase tracking-widest">Cash Received</label>
-                                            <div className="relative">
-                                                <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl lg:text-2xl font-black text-slate-300">₹</span>
-                                                <input
-                                                    type="number"
-                                                    placeholder="0"
-                                                    value={cashReceived || ''}
-                                                    onChange={(e) => setCashReceived(Number(e.target.value))}
-                                                    className="w-full pl-12 pr-6 py-4 lg:py-6 bg-slate-50 border-2 border-slate-100 rounded lg:rounded text-2xl lg:text-3xl font-black outline-none focus:border-blue-500"
-                                                />
-                                            </div>
+                            {/* Sidebar for Payment Methods */}
+                            <div className="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-slate-100 p-4 lg:p-8 space-y-2 lg:space-y-4 flex lg:flex-col overflow-x-auto lg:overflow-x-visible">
+                                <h3 className="hidden lg:block text-lg font-black text-slate-900 mb-4 lg:mb-8">Select Payment</h3>
+                                {[
+                                    { id: 'cash', label: 'Offline (Cash)', icon: Coins },
+                                    { id: 'upi', label: 'Online (UPI)', icon: Smartphone },
+                                    { id: 'card', label: 'Online (Card)', icon: CreditCard },
+                                    { id: 'split', label: 'Online (Split)', icon: ArrowLeftRight },
+                                    { id: 'bank_transfer', label: 'Online (Bank)', icon: Building2 },
+                                ].map(method => (
+                                    <button
+                                        key={method.id}
+                                        onClick={() => setPaymentMode(method.id as PaymentMethod)}
+                                        className={`flex-shrink-0 lg:w-full flex items-center justify-between p-3 lg:p-5 rounded-sm lg:rounded border-2 transition-all ${paymentMode === method.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'
+                                            }`}
+                                    >
+                                        <div className="flex items-center space-x-3 lg:space-x-4">
+                                            <method.icon className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                                            <span className="font-black text-xs lg:text-sm">{method.label}</span>
                                         </div>
-                                        <div className="p-4 bg-blue-50 rounded-sm border border-blue-100 flex justify-between items-center">
-                                            <span className="text-sm font-bold text-blue-700">Bill Amount</span>
-                                            <span className="text-xl font-black text-blue-700">₹{grandTotal.toLocaleString()}</span>
-                                        </div>
-                                        <div className={`p-6 lg:p-8 rounded lg:rounded-[32px] border ${cashReceived >= grandTotal ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
-                                            <p className="text-slate-500 text-sm font-bold uppercase mb-2">Change to Return</p>
-                                            <p className={`text-3xl lg:text-4xl font-black ${cashReceived >= grandTotal ? 'text-green-600' : 'text-slate-900'}`}>
-                                                ₹ {cashReceived >= grandTotal ? (cashReceived - grandTotal).toLocaleString() : '0'}
-                                            </p>
-                                            {cashReceived > 0 && cashReceived < grandTotal && (
-                                                <p className="text-sm font-bold text-red-500 mt-2">₹{(grandTotal - cashReceived).toLocaleString()} more needed</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {paymentMode === 'upi' && (
-                                    <div className="space-y-6 lg:space-y-8">
-                                        <h2 className="text-2xl lg:text-4xl font-black text-slate-900">UPI Payment</h2>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {['Google Pay', 'PhonePe', 'Paytm', 'BHIM UPI'].map(app => (
-                                                <div key={app} className="p-4 lg:p-5 border-2 border-slate-100 rounded flex items-center space-x-3 lg:space-x-4 cursor-pointer hover:border-blue-600 transition-all">
-                                                    <div className="w-8 lg:w-10 h-8 lg:h-10 bg-slate-50 rounded-sm"></div>
-                                                    <span className="font-bold text-slate-900 text-sm">{app}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <input type="text" placeholder="user@upi or 9876543210" className="w-full px-6 py-4 lg:py-5 bg-slate-50 border-2 border-slate-100 rounded lg:rounded text-base lg:text-lg font-bold outline-none" />
-                                    </div>
-                                )}
-
-                                {paymentMode === 'card' && (
-                                    <div className="space-y-6">
-                                        <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Card Payment</h2>
-                                        <div className="space-y-4">
-                                            <input placeholder="1234 5678 9012 3456" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                            <input placeholder="Card Holder Name" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <input placeholder="MM/YY" className="px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                                <input placeholder="CVV" className="px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {paymentMode === 'split' && (
-                                    <div className="space-y-6 lg:space-y-8">
-                                        <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Split Payment</h2>
-                                        <p className="text-sm text-slate-400 font-bold">Split the total amount across multiple payment methods</p>
-                                        <div className="space-y-4">
-                                            <div className="p-4 bg-slate-50 rounded border border-slate-100">
-                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Cash Amount</label>
-                                                <input type="number" placeholder="0" className="w-full mt-2 px-4 py-3 bg-white border border-slate-200 rounded-sm text-lg font-black outline-none" />
-                                            </div>
-                                            <div className="p-4 bg-slate-50 rounded border border-slate-100">
-                                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest">UPI / Card Amount</label>
-                                                <input type="number" placeholder="0" className="w-full mt-2 px-4 py-3 bg-white border border-slate-200 rounded-sm text-lg font-black outline-none" />
-                                            </div>
-                                        </div>
-                                        <div className="p-4 bg-blue-50 rounded border border-blue-100">
-                                            <p className="text-sm font-bold text-blue-600">Total: ₹{grandTotal.toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {paymentMode === 'bank_transfer' && (
-                                    <div className="space-y-6 lg:space-y-8">
-                                        <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Bank Transfer</h2>
-                                        <div className="space-y-4">
-                                            <input placeholder="Account Number" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                            <input placeholder="IFSC Code" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                            <input placeholder="Account Holder Name" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                        </div>
-                                        <div className="p-4 bg-green-50 rounded border border-green-100">
-                                            <p className="text-sm font-bold text-green-600">Amount: ₹{grandTotal.toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                )}
+                                        <ChevronRight className="w-3 h-3 hidden lg:block" />
+                                    </button>
+                                ))}
                             </div>
 
-                            <div className="mt-6 lg:mt-8">
-                                <button onClick={handleCheckout} className="w-full bg-[#10B981] text-white py-4 lg:py-6 rounded lg:rounded-[32px] text-lg lg:text-2xl font-black shadow-xl hover:bg-[#059669] transition-all">
-                                    {isSuccess ? '✅ Payment Successful!' : `Confirm ${paymentMode.replace('_', ' ')} Payment`}
-                                </button>
-                                <p className="text-center text-xs text-slate-400 font-bold mt-4 uppercase tracking-[0.2em]">Secured by 256-bit SSL Encryption</p>
+                            {/* Dynamic Content */}
+                            <div className="flex-1 p-6 lg:p-12 bg-white flex flex-col overflow-y-auto">
+                                <div className="flex-1">
+                                    {paymentMode === 'cash' && (
+                                        <div className="space-y-6 lg:space-y-8">
+                                            <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Cash Payment</h2>
+                                            <div className="space-y-4">
+                                                <label className="block text-sm font-black text-slate-500 uppercase tracking-widest">Cash Received</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl lg:text-2xl font-black text-slate-300">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="0"
+                                                        value={cashReceived || ''}
+                                                        onChange={(e) => setCashReceived(Number(e.target.value))}
+                                                        className="w-full pl-12 pr-6 py-4 lg:py-6 bg-slate-50 border-2 border-slate-100 rounded lg:rounded text-2xl lg:text-3xl font-black outline-none focus:border-blue-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-blue-50 rounded-sm border border-blue-100 flex justify-between items-center">
+                                                <span className="text-sm font-bold text-blue-700">Bill Amount</span>
+                                                <span className="text-xl font-black text-blue-700">₹{grandTotal.toLocaleString()}</span>
+                                            </div>
+                                            <div className={`p-6 lg:p-8 rounded lg:rounded-[32px] border ${cashReceived >= grandTotal ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
+                                                <p className="text-slate-500 text-sm font-bold uppercase mb-2">Change to Return</p>
+                                                <p className={`text-3xl lg:text-4xl font-black ${cashReceived >= grandTotal ? 'text-green-600' : 'text-slate-900'}`}>
+                                                    ₹ {cashReceived >= grandTotal ? (cashReceived - grandTotal).toLocaleString() : '0'}
+                                                </p>
+                                                {cashReceived > 0 && cashReceived < grandTotal && (
+                                                    <p className="text-sm font-bold text-red-500 mt-2">₹{(grandTotal - cashReceived).toLocaleString()} more needed</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {paymentMode === 'upi' && (
+                                        <div className="space-y-6 lg:space-y-8">
+                                            <h2 className="text-2xl lg:text-4xl font-black text-slate-900">UPI Payment</h2>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {['Google Pay', 'PhonePe', 'Paytm', 'BHIM UPI'].map(app => (
+                                                    <div key={app} className="p-4 lg:p-5 border-2 border-slate-100 rounded flex items-center space-x-3 lg:space-x-4 cursor-pointer hover:border-blue-600 transition-all">
+                                                        <div className="w-8 lg:w-10 h-8 lg:h-10 bg-slate-50 rounded-sm"></div>
+                                                        <span className="font-bold text-slate-900 text-sm">{app}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <input type="text" placeholder="user@upi or 9876543210" className="w-full px-6 py-4 lg:py-5 bg-slate-50 border-2 border-slate-100 rounded lg:rounded text-base lg:text-lg font-bold outline-none" />
+                                        </div>
+                                    )}
+
+                                    {paymentMode === 'card' && (
+                                        <div className="space-y-6">
+                                            <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Card Payment</h2>
+                                            <div className="space-y-4">
+                                                <input placeholder="1234 5678 9012 3456" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                                <input placeholder="Card Holder Name" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <input placeholder="MM/YY" className="px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                                    <input placeholder="CVV" className="px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {paymentMode === 'split' && (
+                                        <div className="space-y-6 lg:space-y-8">
+                                            <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Split Payment</h2>
+                                            <p className="text-sm text-slate-400 font-bold">Split the total amount across multiple payment methods</p>
+                                            <div className="space-y-4">
+                                                <div className="p-4 bg-slate-50 rounded border border-slate-100">
+                                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Cash Amount</label>
+                                                    <input type="number" placeholder="0" className="w-full mt-2 px-4 py-3 bg-white border border-slate-200 rounded-sm text-lg font-black outline-none" />
+                                                </div>
+                                                <div className="p-4 bg-slate-50 rounded border border-slate-100">
+                                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">UPI / Card Amount</label>
+                                                    <input type="number" placeholder="0" className="w-full mt-2 px-4 py-3 bg-white border border-slate-200 rounded-sm text-lg font-black outline-none" />
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-blue-50 rounded border border-blue-100">
+                                                <p className="text-sm font-bold text-blue-600">Total: ₹{grandTotal.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {paymentMode === 'bank_transfer' && (
+                                        <div className="space-y-6 lg:space-y-8">
+                                            <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Bank Transfer</h2>
+                                            <div className="space-y-4">
+                                                <input placeholder="Account Number" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                                <input placeholder="IFSC Code" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                                <input placeholder="Account Holder Name" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                            </div>
+                                            <div className="p-4 bg-green-50 rounded border border-green-100">
+                                                <p className="text-sm font-bold text-green-600">Amount: ₹{grandTotal.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-6 lg:mt-8">
+                                    <button onClick={handleCheckout} className="w-full bg-[#10B981] text-white py-4 lg:py-6 rounded lg:rounded-[32px] text-lg lg:text-2xl font-black shadow-xl hover:bg-[#059669] transition-all">
+                                        {isSuccess ? '✅ Payment Successful!' : `Confirm ${paymentMode.replace('_', ' ')} Payment`}
+                                    </button>
+                                    <p className="text-center text-xs text-slate-400 font-bold mt-4 uppercase tracking-[0.2em]">Secured by 256-bit SSL Encryption</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
             {/* Payment Success Screen */}
             {isSuccess && txnInfo && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-                        {/* Green Header */}
-                        <div className="bg-[#10B981] p-10 flex flex-col items-center text-white text-center">
-                            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6 border-4 border-white/20">
-                                <CheckCircle2 className="w-4 h-4 text-white" />
-                            </div>
-                            <h2 className="text-3xl font-black mb-2">Payment Successful</h2>
-                            <p className="text-white/80 font-bold opacity-90">Your transaction has been completed successfully</p>
-                        </div>
-
-                        {/* Amount Display */}
-                        <div className="p-8 lg:p-10 flex flex-col items-center border-b border-slate-50">
-                            <p className="text-slate-400 font-black text-xs uppercase tracking-widest mb-2">Amount Paid</p>
-                            <h1 className="text-5xl font-black text-slate-900">₹{grandTotal.toLocaleString()}</h1>
-                        </div>
-
-                        {/* Transaction Details */}
-                        <div className="p-8 lg:p-10 space-y-6">
-                            <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 bg-green-50 rounded flex items-center justify-center">
-                                    <Receipt className="w-3.5 h-3.5 text-[#10B981]" />
+                <Portal>
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                            {/* Green Header */}
+                            <div className="bg-[#10B981] p-10 flex flex-col items-center text-white text-center">
+                                <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-6 border-4 border-white/20">
+                                    <CheckCircle2 className="w-4 h-4 text-white" />
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Method</p>
-                                    <p className="font-black text-slate-900">{txnInfo.methodLabel}</p>
-                                </div>
+                                <h2 className="text-3xl font-black mb-2">Payment Successful</h2>
+                                <p className="text-white/80 font-bold opacity-90">Your transaction has been completed successfully</p>
                             </div>
 
-                            <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
-                                    <span className="text-blue-600 font-black text-xs">#</span>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transaction ID</p>
-                                    <p className="font-black text-slate-900">{txnInfo.id}</p>
-                                </div>
-                                <button className="p-2 hover:bg-slate-100 rounded-sm transition-colors">
-                                    <Copy className="w-3 h-3 text-slate-400" />
-                                </button>
+                            {/* Amount Display */}
+                            <div className="p-8 lg:p-10 flex flex-col items-center border-b border-slate-50">
+                                <p className="text-slate-400 font-black text-xs uppercase tracking-widest mb-2">Amount Paid</p>
+                                <h1 className="text-5xl font-black text-slate-900">₹{(paymentMode === 'cash' ? cashReceived : grandTotal).toLocaleString()}</h1>
                             </div>
 
-                            <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 bg-purple-50 rounded flex items-center justify-center">
-                                    <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                            {/* Transaction Details */}
+                            <div className="p-8 lg:p-10 space-y-6">
+                                <div className="flex items-center space-x-4">
+                                    <div className="w-12 h-12 bg-green-50 rounded flex items-center justify-center">
+                                        <Receipt className="w-3.5 h-3.5 text-[#10B981]" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Method</p>
+                                        <p className="font-black text-slate-900">{txnInfo.methodLabel}</p>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date & Time</p>
-                                    <p className="font-black text-slate-900">{txnInfo.date}</p>
+
+                                <div className="flex items-center space-x-4">
+                                    <div className="w-12 h-12 bg-blue-50 rounded flex items-center justify-center">
+                                        <span className="text-blue-600 font-black text-xs">#</span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transaction ID</p>
+                                        <p className="font-black text-slate-900">{txnInfo.id}</p>
+                                    </div>
+                                    <button className="p-2 hover:bg-slate-100 rounded-sm transition-colors">
+                                        <Copy className="w-3 h-3 text-slate-400" />
+                                    </button>
                                 </div>
-                            </div>
 
-                            {/* Action Buttons */}
-                            <div className="pt-4 space-y-4">
-                                <button
-                                    onClick={resetBilling}
-                                    className="w-full bg-[#10B981] hover:bg-[#059669] text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-green-100 transition-all active:scale-95"
-                                >
-                                    <ArrowLeft className="w-3.5 h-3.5 text-white" />
-                                    <span>Back to Billing Dashboard</span>
-                                </button>
+                                <div className="flex items-center space-x-4">
+                                    <div className="w-12 h-12 bg-purple-50 rounded flex items-center justify-center">
+                                        <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date & Time</p>
+                                        <p className="font-black text-slate-900">{txnInfo.date}</p>
+                                    </div>
+                                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                {/* Action Buttons */}
+                                <div className="pt-4 space-y-4">
                                     <button
-                                        onClick={handlePrint}
-                                        className="flex items-center justify-center space-x-2 py-4 px-4 bg-white border-2 border-slate-100 rounded font-black text-slate-600 hover:bg-slate-50 transition-all text-sm"
+                                        onClick={resetBilling}
+                                        className="w-full bg-[#10B981] hover:bg-[#059669] text-white py-4 rounded font-black flex items-center justify-center space-x-3 shadow-lg shadow-green-100 transition-all active:scale-95"
                                     >
-                                        <Printer className="w-3.5 h-3.5" />
-                                        <span>Print Invoice</span>
+                                        <ArrowLeft className="w-3.5 h-3.5 text-white" />
+                                        <span>Back to Billing Dashboard</span>
                                     </button>
-                                    <button className="flex items-center justify-center space-x-2 py-4 px-4 bg-white border-2 border-slate-100 rounded font-black text-slate-600 hover:bg-slate-50 transition-all text-sm">
-                                        <div className="-rotate-45"><Send className="w-3.5 h-3.5" /></div>
-                                        <span>Send Receipt</span>
-                                    </button>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            onClick={handlePrint}
+                                            className="flex items-center justify-center space-x-2 py-4 px-4 bg-white border-2 border-slate-100 rounded font-black text-slate-600 hover:bg-slate-50 transition-all text-sm"
+                                        >
+                                            <Printer className="w-3.5 h-3.5" />
+                                            <span>Print Invoice</span>
+                                        </button>
+                                        <button className="flex items-center justify-center space-x-2 py-4 px-4 bg-white border-2 border-slate-100 rounded font-black text-slate-600 hover:bg-slate-50 transition-all text-sm">
+                                            <div className="-rotate-45"><Send className="w-3.5 h-3.5" /></div>
+                                            <span>Send Receipt</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Help Link */}
-                        <div className="p-8 pt-0 flex flex-col items-center">
-                            <p className="text-xs font-bold text-slate-400 mb-2">Need help with this transaction?</p>
-                            <button className="flex items-center space-x-2 text-[#10B981] font-black text-sm hover:underline">
-                                <HelpCircle className="w-3.5 h-3.5" />
-                                <span>Contact Support</span>
-                            </button>
+                            {/* Help Link */}
+                            <div className="p-8 pt-0 flex flex-col items-center">
+                                <p className="text-xs font-bold text-slate-400 mb-2">Need help with this transaction?</p>
+                                <button className="flex items-center space-x-2 text-[#10B981] font-black text-sm hover:underline">
+                                    <HelpCircle className="w-3.5 h-3.5" />
+                                    <span>Contact Support</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Portal>
             )}
             {/* Printable Invoice Component (Hidden from UI, visible only to @media print) */}
             <div id="printable-invoice" className="print-only p-8 bg-white min-h-screen text-slate-900" style={{ fontFamily: "'Inter', sans-serif" }}>

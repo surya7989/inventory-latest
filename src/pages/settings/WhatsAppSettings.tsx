@@ -6,13 +6,13 @@ import confetti from 'canvas-confetti';
 const WhatsAppSettings: React.FC = () => {
     const [config, setConfig] = useLocalStorage('nx_whatsapp_config', {
         apiNumber: '+91 98765 43210',
-        businessName: 'NexaratsINV Store',
+        businessName: 'NEXA POS Store',
         autoReply: true,
         orderConfirmation: true,
         paymentReceipt: true,
         deliveryUpdate: true,
         promotionalMessages: false,
-        welcomeMessage: 'Welcome to NexaratsINV! How can we help you today?',
+        welcomeMessage: 'Welcome to NEXA POS! How can we help you today?',
         orderTemplate: 'Hi {{name}}, your order #{{orderId}} has been confirmed. Total: ₹{{amount}}',
         paymentTemplate: 'Hi {{name}}, payment of ₹{{amount}} received. Thank you!',
     });
