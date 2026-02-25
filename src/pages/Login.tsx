@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { LayoutGrid, XCircle } from 'lucide-react';
+import api from '../utils/api';
 
 interface LoginProps {
     onLogin: (user: any) => void;
 }
+
 
 /* Inline SVG warehouse illustration */
 const WarehouseIllustration = () => (
@@ -141,55 +143,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }
     }, []);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        setTimeout(() => {
-            // Check against stored admins
-            const storedAdminsStr = localStorage.getItem('nx_admin_users');
-            const storedAdmins = storedAdminsStr ? JSON.parse(storedAdminsStr) : [];
+        try {
+            const response = await api.post('/auth/login', { email, password });
+            const { accessToken, user } = response.data;
 
-            // Default Super Admin
-            const isDefaultAdmin = (email === 'admin@nexarats.com' || email === 'admin@nexapos.com') && password === 'admin123';
+            // Store access token in memory/state or default headers
+            api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
-            // Find in invited admins
-            const invitedAdmin = storedAdmins.find((u: any) => u.email === email && u.password === password);
-
-            if (isDefaultAdmin) {
-                // Map all ACCESS_MODULES to 'manage' for super admin
-                const superAdminPerms: Record<string, any> = {};
-                // ACCESS_MODULES is not imported here, but we can use 'manage' for all known IDs
-                // or just handle the logic in Sidebar/App to treat 'all' or empty as full if role is Super Admin.
-                // However, let's try to be consistent.
-
-                onLogin({
-                    id: 'ADMIN-001',
-                    name: 'NEXA Admin',
-                    email: 'admin@nexapos.com',
-                    role: 'Super Admin',
-                    permissions: {} // Sidebar handles Super Admin case specifically
-                });
-            } else if (invitedAdmin) {
-                if (invitedAdmin.status !== 'Active') {
-                    setError('Your account has been deactivated. Please contact Super Admin.');
-                    setLoading(false);
-                    return;
-                }
-                onLogin({
-                    id: invitedAdmin.id,
-                    name: invitedAdmin.name,
-                    email: invitedAdmin.email,
-                    role: invitedAdmin.role,
-                    permissions: invitedAdmin.permissions || {}
-                });
-            } else {
-                setError('Invalid email or password. Please try again.');
-                setLoading(false);
-            }
-        }, 1200);
+            onLogin(user);
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     return (
         <div className="h-screen w-screen bg-white flex flex-col md:flex-row overflow-hidden">

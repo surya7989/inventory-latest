@@ -5,18 +5,20 @@ import { Customer, Transaction, User } from '../types';
 import Portal from '../components/Portal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import ThemedInvoice from '../components/ThemedInvoice';
+import { RefundButton } from '../components/RazorpayComponents';
 
 
 interface CustomersProps {
     customers: Customer[];
     transactions: Transaction[];
-    onUpdate: React.Dispatch<React.SetStateAction<Customer[]>>;
-    onUpdateTransactions?: React.Dispatch<React.SetStateAction<Transaction[]>>;
-    onDelete?: (id: string) => void;
+    onAdd: (customer: Partial<Customer>) => Promise<void>;
+    onUpdate: (id: string, customer: Partial<Customer>) => Promise<void>;
+    onUpdateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
     user?: User | null;
 }
 
-const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate, onUpdateTransactions, onDelete, user }) => {
+const Customers: React.FC<CustomersProps> = ({ customers, transactions, onAdd, onUpdate, onUpdateTransaction, onDelete, user }) => {
     const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['customers'] || 'none');
     const isReadOnly = permissionLevel === 'read';
     const canManageCustomers = permissionLevel === 'manage' || permissionLevel === 'cru';
@@ -54,34 +56,18 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
         }, 100);
     };
 
-    const handleRecordPayment = () => {
-        if (!payingTransaction || !onUpdateTransactions || !paymentAmount) return;
+    const handleRecordPayment = async () => {
+        if (!payingTransaction || !paymentAmount) return;
         const amount = parseFloat(paymentAmount);
         if (isNaN(amount) || amount <= 0) return;
 
-        onUpdateTransactions(prev => prev.map(t => {
-            if (t.id === payingTransaction.id) {
-                const newPaid = (t.paidAmount || 0) + amount;
-                return {
-                    ...t,
-                    paidAmount: newPaid,
-                    status: newPaid >= t.total ? 'Paid' : 'Partial'
-                };
-            }
-            return t;
-        }));
+        const newPaid = (payingTransaction.paidAmount || 0) + amount;
+        const newStatus = newPaid >= payingTransaction.total ? 'Paid' : 'Partial';
 
-        onUpdate(prev => prev.map(c => {
-            if (c.id === payingTransaction.customerId) {
-                return {
-                    ...c,
-                    totalPaid: c.totalPaid + amount,
-                    pending: Math.max(0, c.pending - amount),
-                    status: Math.max(0, c.pending - amount) === 0 ? 'Paid' : 'Partial'
-                };
-            }
-            return c;
-        }));
+        await onUpdateTransaction(payingTransaction.id, {
+            paidAmount: newPaid,
+            status: newStatus
+        });
 
         setPayingTransaction(null);
         setPaymentAmount('');
@@ -105,9 +91,8 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
     });
 
 
-    const handleAdd = () => {
-        const newCustomer: Customer = {
-            id: `#C-${Date.now()}`,
+    const handleAdd = async () => {
+        const newCustomer: Partial<Customer> = {
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
@@ -115,23 +100,22 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
             pending: parseFloat(formData.pending) || 0,
             status: parseFloat(formData.pending) === 0 ? 'Paid' : parseFloat(formData.totalPaid) > 0 ? 'Partial' : 'Unpaid',
         };
-        onUpdate(prev => [...prev, newCustomer]);
+        await onAdd(newCustomer);
         setShowAddModal(false);
         setFormData({ name: '', email: '', phone: '', totalPaid: '0', pending: '0' });
     };
 
-    const handleDelete = (id: string) => {
-        if (onDelete) onDelete(id);
-        else onUpdate(prev => prev.filter(c => c.id !== id));
+    const handleDelete = async (id: string) => {
+        if (window.confirm('Are you sure you want to delete this customer?')) {
+            await onDelete(id);
+        }
     };
 
-    const handleBulkDelete = () => {
+    const handleBulkDelete = async () => {
         if (!canDeleteCustomers) return;
         if (window.confirm(`Are you sure you want to delete ${selectedRows.length} selected customers? This will also remove their transaction history.`)) {
-            if (onDelete) {
-                selectedRows.forEach(id => onDelete(id));
-            } else {
-                onUpdate(prev => prev.filter(c => !selectedRows.includes(c.id)));
+            for (const id of selectedRows) {
+                await onDelete(id);
             }
             setSelectedRows([]);
         }
@@ -357,9 +341,18 @@ const Customers: React.FC<CustomersProps> = ({ customers, transactions, onUpdate
                                                                 <Wallet className="w-3.5 h-3.5" />
                                                             </button>
                                                         )}
+                                                        {t.razorpayPaymentId && (
+                                                            <RefundButton
+                                                                paymentId={t.razorpayPaymentId}
+                                                                maxAmount={t.total}
+                                                                invoiceId={t.id}
+                                                                onRefunded={() => {
+                                                                    alert('Refund initiated successfully');
+                                                                }}
+                                                            />
+                                                        )}
                                                     </div>
                                                 </td>
-
                                             </tr>
                                         ))
                                     )}

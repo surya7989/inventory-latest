@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
     ShoppingCart, Search, Filter, ShoppingBag, ChevronRight,
-    Star, Timer, ShieldCheck, Truck, Plus, Minus, X, ArrowLeft, Clock
+    Star, Timer, ShieldCheck, Truck, Plus, Minus, X, ArrowLeft, Clock, CreditCard, Smartphone, Loader2, Zap, Building2
 } from 'lucide-react';
+import { useRazorpay } from '../hooks/useRazorpay';
+import { PaymentLinkButton } from '../components/RazorpayComponents';
 
 
 import { Product } from '../types';
@@ -10,13 +12,14 @@ import { Product } from '../types';
 interface StorefrontProps {
     products: Product[];
     onBackToAdmin?: () => void;
-    onCheckoutSuccess?: (cart: any[], total: number, gstAmount: number, custName?: string, custPhone?: string, custAddress?: string) => void;
+    onCheckoutSuccess?: (cart: any[], total: number, gstAmount: number, custName?: string, custPhone?: string, custAddress?: string, source?: 'online' | 'offline', paid?: number, method?: any, rzpOrderId?: string, rzpPaymentId?: string) => void;
     onPreBook?: (custId: string, name: string, phone: string, pid: string, pname: string, qty: number) => void;
 }
 
 
 
 const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onCheckoutSuccess, onPreBook }) => {
+    const { initiatePayment, isLoading: rzpLoading } = useRazorpay();
     const [cart, setCart] = useState<{ id: string, qty: number }[]>([]);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -134,21 +137,19 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onChec
         return product.description || 'Premium quality product managed via NEXA POS Inventory Control.';
     };
 
-    const handlePlaceOrder = () => {
+    const handlePlaceOrder = (methodOverride?: string, rzpOrderId?: string, rzpPaymentId?: string) => {
         if (!onCheckoutSuccess) return;
 
         const cartItems = resolvedCart.map(item => ({
             ...item.product,
-            quantity: item.qty
+            quantity: item.quantity || item.qty // Support both item.qty and item.quantity
         }));
 
-
-        // Calculate GST split
         const totalGST = cartTaxTotal;
+        const method = (methodOverride || paymentMethod) as any;
 
-
-
-        onCheckoutSuccess(cartItems, cartTotal, totalGST, custName, custPhone, custAddress);
+        // Signature: (cart, total, gstAmount, custName, custPhone, custAddress, source, paid, method, rzpOrderId, rzpPaymentId)
+        onCheckoutSuccess(cartItems, cartTotal, totalGST, custName, custPhone, custAddress, 'online', cartTotal, method, rzpOrderId, rzpPaymentId);
         setIsSuccess(true);
         setCart([]);
 
@@ -157,6 +158,24 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onChec
             setShowCheckout(false);
             setIsCartOpen(false);
         }, 3000);
+    };
+
+    const handleRazorpayStoreCheckout = async () => {
+        if (!custName || !custPhone) return alert('Please enter name and phone number');
+
+        await initiatePayment({
+            amount: cartTotal,
+            description: `Online Order from ${custName} — ${cartCount} items`,
+            customerName: custName,
+            customerPhone: custPhone,
+            themeColor: '#2563EB',
+            onSuccess: (data: any) => {
+                handlePlaceOrder(paymentMethod, data.razorpay_order_id, data.razorpay_payment_id);
+            },
+            onFailure: () => {
+                alert('Payment failed. Please try again.');
+            }
+        });
     };
 
     const handleConfirmPreBook = () => {
@@ -490,20 +509,49 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onChec
                                     </div>
 
 
-                                    <div>
+                                    <div className="space-y-4">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Payment Method</label>
                                         <div className="grid grid-cols-2 gap-3">
-                                            {['upi', 'cash', 'card', 'bank_transfer'].map(m => (
+                                            {[
+                                                { id: 'upi', label: 'UPI / QR', icon: Zap },
+                                                { id: 'card', label: 'Credit/Debit', icon: CreditCard },
+                                                { id: 'cash', label: 'Pay on Delivery', icon: Clock },
+                                                { id: 'bank_transfer', label: 'Bank Transfer', icon: Building2 },
+                                            ].map(m => (
                                                 <button
-                                                    key={m}
-                                                    onClick={() => setPaymentMethod(m)}
-                                                    className={`p-4 rounded-2xl border-2 transition-all font-black text-[10px] uppercase tracking-widest ${paymentMethod === m ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-50 bg-slate-50 text-slate-400'}`}
+                                                    key={m.id}
+                                                    onClick={() => setPaymentMethod(m.id)}
+                                                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === m.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-50 bg-slate-50 text-slate-400'}`}
                                                 >
-                                                    {m.replace('_', ' ')}
+                                                    <m.icon className="w-5 h-5" />
+                                                    <span className="font-black text-[9px] uppercase tracking-widest">{m.label}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
+
+                                    {/* Razorpay specific UI for online modes */}
+                                    {(paymentMethod === 'upi' || paymentMethod === 'card') && (
+                                        <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+                                            <ShieldCheck className="w-5 h-5 text-blue-600" />
+                                            <div>
+                                                <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Secure Online Payment</p>
+                                                <p className="text-[10px] font-bold text-blue-600">Powered by Razorpay Secure Checkout</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {paymentMethod === 'bank_transfer' && (
+                                        <div className="p-4 bg-cyan-50 rounded-2xl border border-cyan-100 space-y-3">
+                                            <p className="text-[10px] font-black text-cyan-800 uppercase tracking-widest">Get Payment Link</p>
+                                            <PaymentLinkButton
+                                                amount={cartTotal}
+                                                customerName={custName}
+                                                customerPhone={custPhone}
+                                                description={`NEXA Store Order — ${cartCount} items`}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="w-full md:w-[280px] bg-slate-50 p-8 flex flex-col justify-between border-l border-slate-100">
@@ -568,12 +616,18 @@ const Storefront: React.FC<StorefrontProps> = ({ products, onBackToAdmin, onChec
 
                                     <div className="space-y-3">
                                         <button
-                                            onClick={handlePlaceOrder}
-                                            disabled={!custName || !custPhone}
+                                            onClick={(paymentMethod === 'upi' || paymentMethod === 'card') ? handleRazorpayStoreCheckout : () => handlePlaceOrder()}
+                                            disabled={!custName || !custPhone || rzpLoading}
                                             className="w-full py-5 bg-[#10B981] hover:bg-[#059669] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-100 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                                         >
-                                            <ShieldCheck className="w-4 h-4" />
-                                            <span>Proceed to Payment</span>
+                                            {rzpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                                            <span>
+                                                {rzpLoading
+                                                    ? 'Opening Secure Gateway...'
+                                                    : (paymentMethod === 'upi' || paymentMethod === 'card')
+                                                        ? 'Pay Now & Place Order'
+                                                        : 'Confirm Order'}
+                                            </span>
                                         </button>
 
                                         <button

@@ -7,11 +7,14 @@ import Portal from '../components/Portal';
 
 interface InventoryProps {
     products: Product[];
-    onUpdate: (products: Product[]) => void;
+    onAdd: (product: Partial<Product>) => Promise<void>;
+    onUpdate: (id: string, product: Partial<Product>) => Promise<void>;
+    onDelete: (id: string) => Promise<void>;
     user?: User | null;
 }
 
-const Inventory: React.FC<InventoryProps> = ({ products, onUpdate, user }) => {
+const Inventory: React.FC<InventoryProps> = ({ products, onAdd, onUpdate, onDelete, user }) => {
+
     const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['inventory'] || 'none');
     const isReadOnly = permissionLevel === 'read';
     const canManageProducts = permissionLevel === 'manage' || permissionLevel === 'cru';
@@ -63,7 +66,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate, user }) => {
     const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
     const statuses = ['All', 'In Stock', 'Low Stock', 'Out of Stock'];
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const stock = parseInt(formData.stock as string) || 0;
         const minStock = parseInt(formData.minStock as string) || 10;
         const status: Product['status'] = stock === 0 ? 'Out of Stock' : stock <= minStock ? 'Low Stock' : 'In Stock';
@@ -74,32 +77,31 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate, user }) => {
         const gst = parseFloat(formData.gstRate as string) || 0;
         const revenue = formData.taxType === 'Inclusive' ? price / (1 + gst / 100) : price;
 
-        const productData: Product = {
-            id: editingId || Date.now().toString(),
+        const productData: any = {
             name: formData.name,
             category: formData.category,
             price,
             purchasePrice,
             stock,
             status,
-            sku: formData.sku || '',
+            sku: formData.sku || `SKU-${Date.now()}`,
             gstRate: gst,
             unit: formData.unit,
             mrp,
             discountPercentage: mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0,
-            expiryDate: formData.expiryDate,
+            expiryDate: formData.expiryDate || null,
             returns: formData.returns as Product['returns'],
             profit: revenue - purchasePrice,
             image: formData.image || '',
-            hsnCode: formData.hsnCode,
+            hsnCode: formData.hsnCode || '',
             minStock: minStock,
             taxType: formData.taxType as 'Inclusive' | 'Exclusive'
         };
 
         if (editingId) {
-            onUpdate(products.map(p => p.id === editingId ? productData : p));
+            await onUpdate(editingId, productData);
         } else {
-            onUpdate([...products, productData]);
+            await onAdd(productData);
         }
         closeModal();
     };
@@ -139,8 +141,10 @@ const Inventory: React.FC<InventoryProps> = ({ products, onUpdate, user }) => {
         }
     };
 
-    const handleDelete = (id: string) => {
-        onUpdate(products.filter(p => p.id !== id));
+    const handleDelete = async (id: string) => {
+        if (window.confirm('Are you sure you want to delete this product?')) {
+            await onDelete(id);
+        }
     };
 
     const closeModal = () => {

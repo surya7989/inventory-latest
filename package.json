@@ -12,6 +12,8 @@
     "setup": "cd server && npm install && npx prisma generate && npx prisma migrate dev"
   },
   "dependencies": {
+    "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.13.5",
     "canvas-confetti": "1.9.3",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
@@ -19,6 +21,7 @@
     "lucide-react": "^0.469.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1",
     "recharts": "^2.15.0",
     "tailwind-merge": "2.5.4"
   },

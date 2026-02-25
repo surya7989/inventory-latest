@@ -72,6 +72,8 @@ export interface Transaction {
     paidAmount?: number;
     assignedStaff?: string;
     deliveryStatus?: string;
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
 }
 
 export interface PurchaseOrder {

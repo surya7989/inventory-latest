@@ -38,14 +38,17 @@ model Product {
 }
 
 model Customer {
-  id        String    @id @default(cuid())
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  totalPaid Float     @default(0)
-  pending   Float     @default(0)
-  invoices  Invoice[]
+  id              String    @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  address         String?
+  totalPaid       Float     @default(0)
+  pending         Float     @default(0)
+  lastTransaction DateTime?
+  totalInvoices   Int       @default(0)
+  status          String    @default("Paid")
+  invoices        Invoice[]
 }
 
 model Invoice {
@@ -59,9 +62,13 @@ model Invoice {
   subtotal   Float
   gstAmount  Float
   total      Float
+  paidAmount Float         @default(0)
   method     String
   status     String        @default("COMPLETED")
   source     String        @default("offline")
+  orderStatus String?      @default("Pending")
+  razorpayOrderId   String?
+  razorpayPaymentId String?
   createdAt  DateTime      @default(now())
 }
 
@@ -74,4 +81,58 @@ model InvoiceItem {
   quantity  Int
   price     Float
   gst       Float
+}
+
+model Vendor {
+  id              String         @id @default(cuid())
+  name            String
+  contactPerson   String?
+  email           String?
+  phone           String?
+  address         String?
+  totalPurchases  Float          @default(0)
+  totalPaid       Float          @default(0)
+  pendingAmount   Float          @default(0)
+  status          String         @default("Active")
+  lastTransaction DateTime?
+  purchases       Purchase[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Purchase {
+  id           String         @id @default(cuid())
+  number       String         @unique
+  vendor       Vendor         @relation(fields: [vendorId], references: [id])
+  vendorId     String
+  items        PurchaseItem[]
+  subtotal     Float
+  gstAmount    Float
+  total        Float
+  status       String         @default("Received")
+  paidAmount   Float          @default(0)
+  paymentStatus String        @default("Unpaid")
+  createdAt    DateTime       @default(now())
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+  purchaseId String
+  productName String
+  productId  String?
+  quantity   Int
+  price      Float
+  gst        Float
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String
+  description String?
+  date        DateTime @default(now())
+  method      String   @default("Cash")
+  refId       String?
+  createdAt   DateTime @default(now())
 }

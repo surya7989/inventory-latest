@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { Search, Plus, Minus, Trash2, CheckCircle2, CreditCard, Smartphone, Receipt, Coins, X, ChevronRight, LayoutGrid, LayoutList, Building2, ArrowLeftRight, User as UserIcon, Phone, Printer, Send, Copy, Calendar, ArrowLeft, HelpCircle, ShieldCheck, MapPin, Mail, Lock as LockIcon } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, CheckCircle2, CreditCard, Smartphone, Receipt, Coins, X, ChevronRight, LayoutGrid, LayoutList, Building2, ArrowLeftRight, User as UserIcon, Phone, Printer, Send, Copy, Calendar, ArrowLeft, HelpCircle, ShieldCheck, MapPin, Mail, Lock as LockIcon, Loader2, Zap } from 'lucide-react';
 import { Product, CartItem, PaymentMethod, Transaction, User } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import ThemedInvoice from '../components/ThemedInvoice';
 import Portal from '../components/Portal';
+import { useRazorpay } from '../hooks/useRazorpay';
+import { PaymentLinkButton } from '../components/RazorpayComponents';
 
 interface BillingProps {
     products: Product[];
-    onSaleSuccess: (cart: CartItem[], total: number, gstAmount: number, customerName?: string, customerPhone?: string, address?: string, source?: 'online' | 'offline', paidAmount?: number) => void;
+    onSaleSuccess: (cart: CartItem[], total: number, gstAmount: number, customerName?: string, customerPhone?: string, address?: string, source?: 'online' | 'offline', paidAmount?: number, method?: PaymentMethod, rzpOrderId?: string, rzpPaymentId?: string) => void;
     user?: User | null;
 }
 
 const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess, user }) => {
+    const { initiatePayment, isLoading: rzpLoading } = useRazorpay();
     const permissionLevel = (user?.role === 'Super Admin') ? 'manage' : (user?.permissions?.['billing'] || 'none');
     const isReadOnly = permissionLevel === 'read';
     const canCreateInvoices = permissionLevel === 'manage' || permissionLevel === 'cru';
@@ -169,12 +172,38 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess, user }) => {
         const info = {
             id: `TXN-${Math.floor(10000000 + Math.random() * 90000000)}`,
             date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' | ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-            methodLabel: paymentMode === 'cash' ? 'Offline - Cash' : paymentMode === 'upi' ? 'Online - UPI' : paymentMode === 'card' ? 'Online - Card' : paymentMode === 'bank_transfer' ? 'Online - Bank' : 'Online - Split'
+            methodLabel: paymentMode === 'cash' ? 'Offline - Cash' : paymentMode === 'upi' ? 'Online - UPI (Razorpay)' : paymentMode === 'card' ? 'Online - Card (Razorpay)' : paymentMode === 'bank_transfer' ? 'Online - Bank' : 'Online - Split'
         };
         setTxnInfo(info);
         setIsSuccess(true);
-        // Pass cashReceived as paidAmount to track debt/pending balance
-        onSaleSuccess(cart, grandTotal, finalGST, customerName, customerPhone, '', 'offline', cashReceived);
+        onSaleSuccess(cart, grandTotal, finalGST, customerName, customerPhone, '', 'offline', cashReceived, paymentMode);
+    };
+
+    const handleRazorpayCheckout = async () => {
+        await initiatePayment({
+            amount: grandTotal,
+            description: `Order from ${customerName || 'Customer'} — ${cart.length} item(s)`,
+            customerName: customerName || 'Customer',
+            customerPhone: customerPhone,
+            themeColor: '#4F46E5',
+            onSuccess: (data) => {
+                // Payment verified — complete the sale
+                onSaleSuccess(cart, grandTotal, finalGST, customerName, customerPhone, '', 'offline', grandTotal, paymentMode, data.razorpay_order_id, data.razorpay_payment_id);
+
+                // Update local UI state
+                const now = new Date();
+                setTxnInfo({
+                    id: data.razorpay_payment_id,
+                    date: now.toLocaleDateString('en-GB') + ' | ' + now.toLocaleTimeString(),
+                    methodLabel: paymentMode === 'upi' ? 'Online - UPI (Razorpay)' : 'Online - Card (Razorpay)'
+                });
+                setIsSuccess(true);
+                setShowPayment(false);
+            },
+            onFailure: () => {
+                alert('Payment failed or cancelled. Please try again.');
+            },
+        });
     };
 
     const resetBilling = () => {
@@ -642,29 +671,46 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess, user }) => {
                                     {paymentMode === 'upi' && (
                                         <div className="space-y-6 lg:space-y-8">
                                             <h2 className="text-2xl lg:text-4xl font-black text-slate-900">UPI Payment</h2>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                {['Google Pay', 'PhonePe', 'Paytm', 'BHIM UPI'].map(app => (
-                                                    <div key={app} className="p-4 lg:p-5 border-2 border-slate-100 rounded flex items-center space-x-3 lg:space-x-4 cursor-pointer hover:border-blue-600 transition-all">
-                                                        <div className="w-8 lg:w-10 h-8 lg:h-10 bg-slate-50 rounded-sm"></div>
-                                                        <span className="font-bold text-slate-900 text-sm">{app}</span>
-                                                    </div>
-                                                ))}
+                                            <div className="p-6 bg-indigo-50 rounded-2xl border border-indigo-100 text-center">
+                                                <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                    <Zap className="w-8 h-8 text-white" />
+                                                </div>
+                                                <p className="text-sm font-bold text-indigo-700 mb-1">Powered by Razorpay</p>
+                                                <p className="text-xs text-indigo-500 mb-4">Supports UPI, PhonePe, Google Pay, Paytm & more</p>
+                                                <p className="text-2xl font-black text-indigo-900 mb-4">₹{grandTotal.toLocaleString('en-IN')}</p>
+                                                <button
+                                                    onClick={handleRazorpayCheckout}
+                                                    disabled={rzpLoading}
+                                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-black text-lg flex items-center justify-center gap-3 shadow-lg shadow-indigo-200 transition-all disabled:opacity-60"
+                                                >
+                                                    {rzpLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Smartphone className="w-5 h-5" />}
+                                                    {rzpLoading ? 'Opening Razorpay…' : 'Pay via UPI / Razorpay'}
+                                                </button>
                                             </div>
-                                            <input type="text" placeholder="user@upi or 9876543210" className="w-full px-6 py-4 lg:py-5 bg-slate-50 border-2 border-slate-100 rounded lg:rounded text-base lg:text-lg font-bold outline-none" />
+                                            <p className="text-center text-xs text-slate-400 font-bold">🔒 Secured by Razorpay — 100+ payment methods</p>
                                         </div>
                                     )}
 
                                     {paymentMode === 'card' && (
                                         <div className="space-y-6">
                                             <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Card Payment</h2>
-                                            <div className="space-y-4">
-                                                <input placeholder="1234 5678 9012 3456" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                                <input placeholder="Card Holder Name" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <input placeholder="MM/YY" className="px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                                    <input placeholder="CVV" className="px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                            <div className="p-6 bg-purple-50 rounded-2xl border border-purple-100 text-center">
+                                                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                    <CreditCard className="w-8 h-8 text-white" />
                                                 </div>
+                                                <p className="text-sm font-bold text-purple-700 mb-1">Powered by Razorpay</p>
+                                                <p className="text-xs text-purple-500 mb-4">Visa, Mastercard, RuPay, Amex & more</p>
+                                                <p className="text-2xl font-black text-purple-900 mb-4">₹{grandTotal.toLocaleString('en-IN')}</p>
+                                                <button
+                                                    onClick={handleRazorpayCheckout}
+                                                    disabled={rzpLoading}
+                                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-black text-lg flex items-center justify-center gap-3 shadow-lg shadow-purple-200 transition-all disabled:opacity-60"
+                                                >
+                                                    {rzpLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
+                                                    {rzpLoading ? 'Opening Razorpay…' : 'Pay via Card / Razorpay'}
+                                                </button>
                                             </div>
+                                            <p className="text-center text-xs text-slate-400 font-bold">🔒 3D Secure — PCI DSS Compliant</p>
                                         </div>
                                     )}
 
@@ -690,25 +736,39 @@ const Billing: React.FC<BillingProps> = ({ products, onSaleSuccess, user }) => {
 
                                     {paymentMode === 'bank_transfer' && (
                                         <div className="space-y-6 lg:space-y-8">
-                                            <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Bank Transfer</h2>
-                                            <div className="space-y-4">
-                                                <input placeholder="Account Number" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                                <input placeholder="IFSC Code" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
-                                                <input placeholder="Account Holder Name" className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded text-base lg:text-lg font-bold outline-none" />
+                                            <h2 className="text-2xl lg:text-4xl font-black text-slate-900">Bank / Payment Link</h2>
+                                            <div className="p-6 bg-cyan-50 rounded-2xl border border-cyan-100">
+                                                <p className="text-sm font-bold text-cyan-700 mb-1">Send a Razorpay Payment Link</p>
+                                                <p className="text-xs text-cyan-500 mb-4">Customer can pay via UPI, Card, Net Banking from their phone</p>
+                                                <p className="text-2xl font-black text-cyan-900 mb-4">₹{grandTotal.toLocaleString('en-IN')}</p>
+                                                <PaymentLinkButton
+                                                    amount={grandTotal}
+                                                    customerName={customerName || 'Customer'}
+                                                    customerPhone={customerPhone}
+                                                    description={`Order — ${cart.length} item(s)`}
+                                                />
                                             </div>
-                                            <div className="p-4 bg-green-50 rounded border border-green-100">
-                                                <p className="text-sm font-bold text-green-600">Amount: ₹{grandTotal.toLocaleString()}</p>
+                                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Or Manual Bank Transfer</p>
+                                                <div className="space-y-2 text-sm font-bold text-slate-700">
+                                                    <p>Account: <span className="font-black">1234 5678 9012</span></p>
+                                                    <p>IFSC: <span className="font-black">HDFC0001234</span></p>
+                                                    <p>Amount: <span className="font-black text-green-600">₹{grandTotal.toLocaleString()}</span></p>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="mt-6 lg:mt-8">
-                                    <button onClick={handleCheckout} className="w-full bg-[#10B981] text-white py-4 lg:py-6 rounded lg:rounded-[32px] text-lg lg:text-2xl font-black shadow-xl hover:bg-[#059669] transition-all">
-                                        {isSuccess ? '✅ Payment Successful!' : `Confirm ${paymentMode.replace('_', ' ')} Payment`}
-                                    </button>
-                                    <p className="text-center text-xs text-slate-400 font-bold mt-4 uppercase tracking-[0.2em]">Secured by 256-bit SSL Encryption</p>
-                                </div>
+                                {/* Confirm button — only show for cash and split (Razorpay handles UPI/card/bank) */}
+                                {(paymentMode === 'cash' || paymentMode === 'split') && (
+                                    <div className="mt-6 lg:mt-8">
+                                        <button onClick={handleCheckout} className="w-full bg-[#10B981] text-white py-4 lg:py-6 rounded lg:rounded-[32px] text-lg lg:text-2xl font-black shadow-xl hover:bg-[#059669] transition-all">
+                                            {isSuccess ? '✅ Payment Successful!' : `Confirm ${paymentMode.replace('_', ' ')} Payment`}
+                                        </button>
+                                        <p className="text-center text-xs text-slate-400 font-bold mt-4 uppercase tracking-[0.2em]">Secured by 256-bit SSL Encryption</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
